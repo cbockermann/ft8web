@@ -1,0 +1,12 @@
+# Point the Kafka consumer/producer at the @EmbeddedKafka broker during tests.
+spring:
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    consumer:
+      auto-offset-reset: earliest
+
+ft8:
+  topic: ft8.decodes
+  window-seconds: 3600
+  gap-seconds: 180
+  eviction-interval-ms: 60000
