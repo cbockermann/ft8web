@@ -22,3 +22,20 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Frontend (React + Vite)
+frontend/node_modules/
+frontend/dist/
+
+# Built SPA copied into Spring Boot static resources by the frontend build
+src/main/resources/static/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
