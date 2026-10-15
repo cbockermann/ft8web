@@ -13,7 +13,8 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     producer:
-      # Used only by the dev publish helper (see the 'dev' profile).
+      # Used by the bundled UDP→Kafka bridge and the dev publish helper.
+      acks: all
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
@@ -23,6 +24,16 @@ ft8:
   window-seconds: ${FT8_WINDOW_SECONDS:3600}     # rolling in-memory retention (~1h)
   gap-seconds: ${FT8_GAP_SECONDS:180}            # QSO split threshold
   eviction-interval-ms: ${FT8_EVICTION_MS:60000} # background eviction sweep
+
+  # Bundled UDP→Kafka bridge: replaces ft8mon's scripts/udp_kafka_bridge.py.
+  # Off by default; enable it on the host that receives ft8mon's -json output
+  # (ft8mon ... -json <this-host>:5001). Data still flows UDP → Kafka → consumer.
+  bridge:
+    enabled: ${FT8_BRIDGE_ENABLED:false}
+    bind: ${FT8_BRIDGE_BIND:0.0.0.0}   # interface to listen on
+    port: ${FT8_BRIDGE_PORT:5001}      # UDP port (ft8mon -json target)
+    key-field: ${FT8_BRIDGE_KEY:band}  # JSON field → Kafka key; blank for none
+    validate: ${FT8_BRIDGE_VALIDATE:false}
 
 management:
   endpoints:

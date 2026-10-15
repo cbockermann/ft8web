@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class QsoGrouperTest {
 
-    private static final Ft8Properties PROPS = new Ft8Properties("ft8.decodes", 3600, 180, 60000);
+    private static final Ft8Properties PROPS = new Ft8Properties("ft8.decodes", 3600, 180, 60000, null);
 
     private static Decode decode(String id, long unix, String msg) {
         return new Decode(id, null, unix, -10, 0.1, 1000.0, 174, msg, Map.of());
@@ -69,7 +69,7 @@ class QsoGrouperTest {
 
     @Test
     void evictsOutsideWindow() {
-        Ft8Properties shortWindow = new Ft8Properties("ft8.decodes", 100, 180, 60000);
+        Ft8Properties shortWindow = new Ft8Properties("ft8.decodes", 100, 180, 60000, null);
         QsoGrouper g = new QsoGrouper(shortWindow);
         g.add(decode("0@0", 1000, "AB1HL DL1ABC -12"));
         g.add(decode("0@1", 2000, "DL1ABC AB1HL R-08")); // advances horizon past the first
