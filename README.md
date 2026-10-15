@@ -65,10 +65,10 @@ All settings are overridable via environment variables (see
 
 | Env var              | Default        | Meaning                                   |
 |----------------------|----------------|-------------------------------------------|
-| `KAFKA_BOOTSTRAP`    | localhost:9092 | Kafka bootstrap servers                   |
+| `KAFKA_BOOTSTRAP`    | 192.168.50.59:9092 | Kafka bootstrap servers               |
 | `KAFKA_GROUP`        | ft8-monitor    | consumer group id                         |
 | `KAFKA_OFFSET_RESET` | latest         | `latest` (live) or `earliest` (backfill)  |
-| `FT8_TOPIC`          | ft8.decodes    | topic to consume                          |
+| `FT8_TOPIC`          | ft8            | topic to consume                          |
 | `FT8_WINDOW_SECONDS` | 3600           | rolling retention window                  |
 | `FT8_GAP_SECONDS`    | 180            | QSO split threshold                       |
 
