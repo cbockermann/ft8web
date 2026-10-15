@@ -12,10 +12,14 @@ See [CLAUDE.md](CLAUDE.md) for the full domain and pipeline context.
 ## Architecture
 
 ```
-Kafka topic ft8.decodes
+ft8mon -json host:5001
+        │  (UDP JSON datagrams)
+        ▼
+[ optional bundled UDP→Kafka bridge ]  ──►  Kafka topic ft8
         │  (spring-kafka @KafkaListener, own consumer group)
         ▼
 Spring Boot backend (Java 21)
+   ├─ UdpKafkaBridge: optional UDP→Kafka bridge (ft8.bridge.enabled)
    ├─ QsoGrouper: rolling in-memory view (~1h), evict older decodes
    ├─ SSE   GET /api/stream         live decode feed (server → browser)
    ├─ REST  GET /api/qsl/{decodeId} the QSO for a given decode
@@ -58,6 +62,28 @@ npm run dev        # http://localhost:5173, proxies /api → :8080
 
 Run the backend (`spring-boot:run`) alongside it.
 
+## Bundled UDP→Kafka bridge (optional)
+
+Normally ft8mon's UDP decodes reach Kafka via ft8mon's own
+`scripts/udp_kafka_bridge.py`. ft8web can run that bridge itself, so the monitor
+host is a single process instead of app + Python script. The data path is
+unchanged (UDP → Kafka → consumer); Kafka stays the backbone.
+
+Enable it on the host that receives ft8mon's `-json` output:
+
+```bash
+FT8_BRIDGE_ENABLED=true java -jar target/ft8-monitor-0.0.1-SNAPSHOT.jar
+```
+
+Point ft8mon at it (default UDP port 5001):
+
+```bash
+./ft8mon -listen :8073 -json <monitor-host>:5001 -tag band:40m
+```
+
+Off by default — when disabled, no UDP port is opened and ft8web is a pure Kafka
+consumer as before. See the `FT8_BRIDGE_*` settings below.
+
 ## Configuration
 
 All settings are overridable via environment variables (see
@@ -68,9 +94,14 @@ All settings are overridable via environment variables (see
 | `KAFKA_BOOTSTRAP`    | 192.168.50.59:9092 | Kafka bootstrap servers               |
 | `KAFKA_GROUP`        | ft8-monitor    | consumer group id                         |
 | `KAFKA_OFFSET_RESET` | latest         | `latest` (live) or `earliest` (backfill)  |
-| `FT8_TOPIC`          | ft8            | topic to consume                          |
+| `FT8_TOPIC`          | ft8            | topic to consume (bridge produces here too) |
 | `FT8_WINDOW_SECONDS` | 3600           | rolling retention window                  |
 | `FT8_GAP_SECONDS`    | 180            | QSO split threshold                       |
+| `FT8_BRIDGE_ENABLED` | false          | run the bundled UDP→Kafka bridge          |
+| `FT8_BRIDGE_BIND`    | 0.0.0.0        | bridge: interface to listen on            |
+| `FT8_BRIDGE_PORT`    | 5001           | bridge: UDP port (ft8mon `-json` target)  |
+| `FT8_BRIDGE_KEY`     | band           | bridge: JSON field → Kafka key (blank for none) |
+| `FT8_BRIDGE_VALIDATE`| false          | bridge: skip non-JSON datagrams           |
 
 ## Testing without the real pipeline
 

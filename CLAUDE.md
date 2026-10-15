@@ -26,8 +26,12 @@ ft8mon (-json host:port)  →  UDP JSON datagrams
 - A Python bridge forwards each datagram to Kafka. The user has a **running
   Kafka broker**. The bridge can set the Kafka message **key = the `band`
   tag** (`--key band`).
-- So this web app just needs to be **another Kafka consumer** of
-  `ft8.decodes`. Do NOT re-ingest UDP here; consume from Kafka.
+- So this web app just needs to be **another Kafka consumer**. The grouper is
+  always fed **from Kafka**, never from UDP directly.
+- **Bundled bridge (optional):** ft8web can *also* run the UDP→Kafka bridge
+  itself (`ft8.bridge.enabled=true`, see `UdpKafkaBridge`), a drop-in for
+  `scripts/udp_kafka_bridge.py` so the monitor host is one process. It only
+  **produces** to Kafka; the consumer path is unchanged. Off by default.
 
 ### Decode JSON schema (Kafka message value)
 
