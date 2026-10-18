@@ -26,7 +26,7 @@ public final class Callsigns {
     private static final Pattern CALL_CHARS = Pattern.compile("^[A-Z0-9/]+$");
     /** Sign-off / directive tokens that are never callsigns. */
     private static final Set<String> SIGNOFFS = Set.of(
-            "RRR", "RR73", "73", "R73", "TU", "TU73", "QSL", "DE", "CQ", "DX");
+            "RRR", "RR73", "73", "R73", "TU", "TU73", "QSL", "DE", "CQ", "DX", "QRZ");
 
     /**
      * Whether a token is a known FT8 sign-off / directive (e.g. {@code RR73},

@@ -1,8 +1,21 @@
 import { useEffect, useState } from 'react';
 import { settingsUrl } from '../api.js';
 
+const DEFAULT_PSK = {
+  enabled: false,
+  antenna: '',
+  host: 'report.pskreporter.info',
+  port: 4739,
+  intervalSeconds: 300,
+};
+
 export default function ConfigView() {
-  const [form, setForm] = useState({ callsign: '', locator: '', gridResolution: 'square' });
+  const [form, setForm] = useState({
+    callsign: '',
+    locator: '',
+    gridResolution: 'square',
+    psk: { ...DEFAULT_PSK },
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null); // { ok, msg }
@@ -15,6 +28,7 @@ export default function ConfigView() {
           callsign: s.callsign || '',
           locator: s.locator || '',
           gridResolution: s.gridResolution || 'square',
+          psk: { ...DEFAULT_PSK, ...(s.psk || {}) },
         }),
       )
       .catch(() => setStatus({ ok: false, msg: 'Could not load settings.' }))
@@ -22,6 +36,10 @@ export default function ConfigView() {
   }, []);
 
   const field = (name) => (e) => setForm((f) => ({ ...f, [name]: e.target.value }));
+  const pskField = (name, parse = (v) => v) => (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : parse(e.target.value);
+    setForm((f) => ({ ...f, psk: { ...f.psk, [name]: value } }));
+  };
 
   const save = (e) => {
     e.preventDefault();
@@ -39,6 +57,7 @@ export default function ConfigView() {
           callsign: body.callsign || '',
           locator: body.locator || '',
           gridResolution: body.gridResolution || 'square',
+          psk: { ...DEFAULT_PSK, ...(body.psk || {}) },
         });
         setStatus({ ok: true, msg: 'Saved.' });
       })
@@ -77,6 +96,49 @@ export default function ConfigView() {
             <option value="square">Square (4 chars, 2°×1°)</option>
           </select>
         </label>
+
+        <fieldset className="config-section">
+          <legend>PSKReporter</legend>
+          <label className="checkbox">
+            <input type="checkbox" checked={form.psk.enabled} onChange={pskField('enabled')} />
+            Report observed stations to PSKReporter
+          </label>
+          <p className="hint">Uses the callsign and locator above as your reporting identity.</p>
+          <label>
+            Antenna (optional)
+            <input
+              value={form.psk.antenna}
+              onChange={pskField('antenna')}
+              placeholder="e.g. Longwire"
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            Host
+            <input value={form.psk.host} onChange={pskField('host')} spellCheck={false} />
+          </label>
+          <div className="config-row">
+            <label>
+              Port
+              <input
+                type="number"
+                value={form.psk.port}
+                onChange={pskField('port', (v) => Number(v))}
+              />
+            </label>
+            <label>
+              Interval (s)
+              <input
+                type="number"
+                min="120"
+                value={form.psk.intervalSeconds}
+                onChange={pskField('intervalSeconds', (v) => Number(v))}
+              />
+            </label>
+          </div>
+          <p className="hint">Test port 14739, live 4739. Minimum interval 120 s.</p>
+        </fieldset>
+
         <div className="config-actions">
           <button type="submit" disabled={loading || saving}>
             {saving ? 'Saving…' : 'Save'}
@@ -84,10 +146,7 @@ export default function ConfigView() {
           {status && <span className={status.ok ? 'ok' : 'error'}>{status.msg}</span>}
         </div>
       </form>
-      <p className="hint">
-        Stored on the server in a local properties file. Your locator marks your
-        station on the overview map.
-      </p>
+      <p className="hint">Stored on the server in a local properties file.</p>
     </main>
   );
 }

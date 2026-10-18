@@ -28,6 +28,17 @@ public class SettingsService {
     private static final String KEY_GRID_RESOLUTION = "grid-resolution";
     private static final String DEFAULT_GRID_RESOLUTION = "square";
 
+    private static final String KEY_PSK_ENABLED = "psk.enabled";
+    private static final String KEY_PSK_ANTENNA = "psk.antenna";
+    private static final String KEY_PSK_HOST = "psk.host";
+    private static final String KEY_PSK_PORT = "psk.port";
+    private static final String KEY_PSK_INTERVAL = "psk.interval-seconds";
+
+    private static final String DEFAULT_PSK_HOST = "report.pskreporter.info";
+    private static final int DEFAULT_PSK_PORT = 4739;
+    private static final int DEFAULT_PSK_INTERVAL = 300;
+    private static final int MIN_PSK_INTERVAL = 120; // PSKReporter etiquette floor
+
     private final Path file;
     private final Object lock = new Object();
     private final Properties props = new Properties();
@@ -54,10 +65,17 @@ public class SettingsService {
 
     public Settings get() {
         synchronized (lock) {
+            Settings.Psk psk = new Settings.Psk(
+                    Boolean.parseBoolean(props.getProperty(KEY_PSK_ENABLED, "false")),
+                    props.getProperty(KEY_PSK_ANTENNA, ""),
+                    props.getProperty(KEY_PSK_HOST, DEFAULT_PSK_HOST),
+                    parseInt(props.getProperty(KEY_PSK_PORT), DEFAULT_PSK_PORT),
+                    Math.max(MIN_PSK_INTERVAL, parseInt(props.getProperty(KEY_PSK_INTERVAL), DEFAULT_PSK_INTERVAL)));
             return new Settings(
                     props.getProperty(KEY_CALLSIGN, ""),
                     props.getProperty(KEY_LOCATOR, ""),
-                    props.getProperty(KEY_GRID_RESOLUTION, DEFAULT_GRID_RESOLUTION));
+                    props.getProperty(KEY_GRID_RESOLUTION, DEFAULT_GRID_RESOLUTION),
+                    psk);
         }
     }
 
@@ -67,9 +85,33 @@ public class SettingsService {
             props.setProperty(KEY_CALLSIGN, norm(incoming.callsign()).toUpperCase());
             props.setProperty(KEY_LOCATOR, norm(incoming.locator()).toUpperCase());
             props.setProperty(KEY_GRID_RESOLUTION, normResolution(incoming.gridResolution()));
+
+            Settings.Psk psk = incoming.psk() != null ? incoming.psk()
+                    : new Settings.Psk(false, "", DEFAULT_PSK_HOST, DEFAULT_PSK_PORT, DEFAULT_PSK_INTERVAL);
+            props.setProperty(KEY_PSK_ENABLED, Boolean.toString(psk.enabled()));
+            props.setProperty(KEY_PSK_ANTENNA, norm(psk.antenna()));
+            props.setProperty(KEY_PSK_HOST, norm(psk.host()).isEmpty() ? DEFAULT_PSK_HOST : norm(psk.host()));
+            props.setProperty(KEY_PSK_PORT, Integer.toString(validPort(psk.port())));
+            props.setProperty(KEY_PSK_INTERVAL,
+                    Integer.toString(Math.max(MIN_PSK_INTERVAL, psk.intervalSeconds())));
             save();
             return get();
         }
+    }
+
+    private static int parseInt(String s, int fallback) {
+        if (s == null || s.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private static int validPort(int port) {
+        return (port >= 1 && port <= 65535) ? port : DEFAULT_PSK_PORT;
     }
 
     private void save() {

@@ -21,11 +21,13 @@ ft8mon -json host:5001
 Spring Boot backend (Java 21)
    ├─ UdpKafkaBridge: optional UDP→Kafka bridge (ft8.bridge.enabled)
    ├─ QsoGrouper: rolling in-memory view (~1h), evict older decodes
+   ├─ GridFieldAggregator: per-field/square activity for the overview map
+   ├─ PskReporterFeeder: optional spot reporter (own consumer group)
    ├─ SSE   GET /api/stream         live decode feed (server → browser)
    ├─ REST  GET /api/qsl/{decodeId} the QSO for a given decode
    └─ serves the static React SPA
         ▼
-Browser SPA (React) — master-detail
+Browser SPA (React) — overview map · feed · config
 ```
 
 - **Backend:** Spring Boot + spring-kafka. Live push via Server-Sent Events;
@@ -84,6 +86,29 @@ Point ft8mon at it (default UDP port 5001):
 Off by default — when disabled, no UDP port is opened and ft8web is a pure Kafka
 consumer as before. See the `FT8_BRIDGE_*` settings below.
 
+## PSKReporter feeder (optional)
+
+ft8web can report the stations it hears to [PSKReporter](https://pskreporter.info)
+as an additional, switchable Kafka consumer (its own consumer group, so it never
+disturbs ingest or the UI). It builds standard IPFIX datagrams (the WSJT-X
+format, PSKReporter enterprise number 30351) and sends them over UDP — no
+account or authentication is needed; your identity is just your callsign and
+locator.
+
+It is **configured on the Config page** (persisted in the settings file next to
+callsign/locator), so it can be toggled at runtime without a restart:
+
+- **Enable** — report observed stations.
+- **Antenna** — optional free-text.
+- **Host / Port** — `report.pskreporter.info` : `4739` (use test port `14739`
+  first), **Interval** — ≥ 120 s (default 300).
+
+It reports only decodes that carry a real transmit frequency (`rf_hz`, i.e. SDR
+sources that know their dial), de-duplicates to one spot per station+band per
+interval, and applies a strict callsign filter so `i3=` mis-decodes and noise
+are never reported. Your own callsign is never self-reported. Disabled by
+default. Verify incoming spots by filtering for your call on pskreporter.info.
+
 ## Configuration
 
 All settings are overridable via environment variables (see
@@ -104,6 +129,12 @@ All settings are overridable via environment variables (see
 | `FT8_BRIDGE_PORT`    | 5001           | bridge: UDP port (ft8mon `-json` target)  |
 | `FT8_BRIDGE_KEY`     | band           | bridge: JSON field → Kafka key (blank for none) |
 | `FT8_BRIDGE_VALIDATE`| false          | bridge: skip non-JSON datagrams           |
+| `PSKREPORTER_KAFKA_GROUP` | pskreporter-_&lt;hostname&gt;_ | feeder's own consumer group    |
+| `PSKREPORTER_SOFTWARE` | ft8web       | decoder name reported to PSKReporter      |
+
+PSKReporter's user-facing settings (enable, antenna, host, port, interval) are
+edited on the **Config page**, not via env vars — they live in the settings file
+with callsign/locator.
 
 ## Testing without the real pipeline
 
