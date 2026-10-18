@@ -11,7 +11,7 @@ export default function App() {
       <header>
         <h1>FT8 Monitor</h1>
         <nav className="nav">
-          <NavLink to="/overview">Overview</NavLink>
+          <NavLink to="/" end>Overview</NavLink>
           <NavLink to="/feed">Feed</NavLink>
           <NavLink to="/config">Config</NavLink>
         </nav>
@@ -21,11 +21,12 @@ export default function App() {
       </header>
 
       <Routes>
-        <Route path="/" element={<Navigate to="/overview" replace />} />
-        <Route path="/overview" element={<OverviewView />} />
+        {/* Overview is the entry page: rendered directly at "/" (no redirect). */}
+        <Route path="/" element={<OverviewView />} />
+        <Route path="/overview" element={<Navigate to="/" replace />} />
         <Route path="/feed" element={<FeedView />} />
         <Route path="/config" element={<ConfigView />} />
-        <Route path="*" element={<Navigate to="/overview" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );
