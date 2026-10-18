@@ -25,6 +25,8 @@ public class SettingsService {
 
     private static final String KEY_CALLSIGN = "callsign";
     private static final String KEY_LOCATOR = "locator";
+    private static final String KEY_GRID_RESOLUTION = "grid-resolution";
+    private static final String DEFAULT_GRID_RESOLUTION = "square";
 
     private final Path file;
     private final Object lock = new Object();
@@ -54,7 +56,8 @@ public class SettingsService {
         synchronized (lock) {
             return new Settings(
                     props.getProperty(KEY_CALLSIGN, ""),
-                    props.getProperty(KEY_LOCATOR, ""));
+                    props.getProperty(KEY_LOCATOR, ""),
+                    props.getProperty(KEY_GRID_RESOLUTION, DEFAULT_GRID_RESOLUTION));
         }
     }
 
@@ -63,6 +66,7 @@ public class SettingsService {
         synchronized (lock) {
             props.setProperty(KEY_CALLSIGN, norm(incoming.callsign()).toUpperCase());
             props.setProperty(KEY_LOCATOR, norm(incoming.locator()).toUpperCase());
+            props.setProperty(KEY_GRID_RESOLUTION, normResolution(incoming.gridResolution()));
             save();
             return get();
         }
@@ -85,5 +89,10 @@ public class SettingsService {
 
     private static String norm(String s) {
         return s == null ? "" : s.trim();
+    }
+
+    private static String normResolution(String s) {
+        String v = norm(s).toLowerCase();
+        return "field".equals(v) ? "field" : DEFAULT_GRID_RESOLUTION;
     }
 }

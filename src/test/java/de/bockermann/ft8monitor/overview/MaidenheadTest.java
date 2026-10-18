@@ -18,6 +18,18 @@ class MaidenheadTest {
     }
 
     @Test
+    void extractsSquare() {
+        assertEquals("FN42", Maidenhead.squareOf("CQ DX AB1HL FN42"));
+        assertEquals("JN49", Maidenhead.squareOf("AB1HL DL1ABC JN49"));
+        assertNull(Maidenhead.squareOf("AB1HL DL1ABC R-12"));
+    }
+
+    @Test
+    void fieldOfSquare() {
+        assertEquals("FN", Maidenhead.fieldOfSquare("FN42"));
+    }
+
+    @Test
     void nullWhenNoGrid() {
         assertNull(Maidenhead.fieldOf("AB1HL DL1ABC R-12"));
         assertNull(Maidenhead.fieldOf("DL1ABC AB1HL RR73"));

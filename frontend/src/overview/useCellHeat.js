@@ -7,19 +7,20 @@ import { apiBase } from '../api.js';
 const POLL_MS = 5000;
 
 /**
- * Live per-field message counts for the last `minutes`, polled from
- * GET /api/fields. Returns a { field: count } map.
+ * Live per-cell message counts for the last `minutes` at the given resolution
+ * ('field' or 'square'), polled from GET /api/fields. Returns a { cell: count }
+ * map keyed by 2-char field or 4-char square.
  */
-export function useFieldHeat(minutes) {
+export function useCellHeat(minutes, level) {
   const [counts, setCounts] = useState({});
 
   useEffect(() => {
     let active = true;
     const load = () =>
-      fetch(`${apiBase}/fields?minutes=${minutes}`)
+      fetch(`${apiBase}/fields?minutes=${minutes}&level=${level}`)
         .then((r) => (r.ok ? r.json() : []))
         .then((list) => {
-          if (active) setCounts(Object.fromEntries(list.map((f) => [f.field, f.count])));
+          if (active) setCounts(Object.fromEntries(list.map((c) => [c.cell, c.count])));
         })
         .catch(() => {
           /* transient fetch error — keep the last snapshot */
@@ -31,7 +32,7 @@ export function useFieldHeat(minutes) {
       active = false;
       clearInterval(timer);
     };
-  }, [minutes]);
+  }, [minutes, level]);
 
   return counts;
 }

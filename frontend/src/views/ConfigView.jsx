@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { settingsUrl } from '../api.js';
 
 export default function ConfigView() {
-  const [form, setForm] = useState({ callsign: '', locator: '' });
+  const [form, setForm] = useState({ callsign: '', locator: '', gridResolution: 'square' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null); // { ok, msg }
@@ -10,7 +10,13 @@ export default function ConfigView() {
   useEffect(() => {
     fetch(settingsUrl)
       .then((r) => r.json())
-      .then((s) => setForm({ callsign: s.callsign || '', locator: s.locator || '' }))
+      .then((s) =>
+        setForm({
+          callsign: s.callsign || '',
+          locator: s.locator || '',
+          gridResolution: s.gridResolution || 'square',
+        }),
+      )
       .catch(() => setStatus({ ok: false, msg: 'Could not load settings.' }))
       .finally(() => setLoading(false));
   }, []);
@@ -29,7 +35,11 @@ export default function ConfigView() {
       .then(async (r) => {
         const body = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
-        setForm({ callsign: body.callsign || '', locator: body.locator || '' });
+        setForm({
+          callsign: body.callsign || '',
+          locator: body.locator || '',
+          gridResolution: body.gridResolution || 'square',
+        });
         setStatus({ ok: true, msg: 'Saved.' });
       })
       .catch((err) => setStatus({ ok: false, msg: err.message }))
@@ -59,6 +69,13 @@ export default function ConfigView() {
             autoCapitalize="characters"
             spellCheck={false}
           />
+        </label>
+        <label>
+          Default map resolution
+          <select value={form.gridResolution} onChange={field('gridResolution')}>
+            <option value="field">Field (2 chars, 20°×10°)</option>
+            <option value="square">Square (4 chars, 2°×1°)</option>
+          </select>
         </label>
         <div className="config-actions">
           <button type="submit" disabled={loading || saving}>
