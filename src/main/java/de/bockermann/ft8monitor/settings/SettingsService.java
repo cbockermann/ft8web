@@ -28,6 +28,9 @@ public class SettingsService {
     private static final String KEY_GRID_RESOLUTION = "grid-resolution";
     private static final String DEFAULT_GRID_RESOLUTION = "square";
 
+    private static final String KEY_BACKFILL = "backfill-minutes";
+    private static final int MAX_BACKFILL = 1440; // 24 h
+
     private static final String KEY_PSK_ENABLED = "psk.enabled";
     private static final String KEY_PSK_ANTENNA = "psk.antenna";
     private static final String KEY_PSK_HOST = "psk.host";
@@ -40,11 +43,14 @@ public class SettingsService {
     private static final int MIN_PSK_INTERVAL = 120; // PSKReporter etiquette floor
 
     private final Path file;
+    private final int defaultBackfillMinutes;
     private final Object lock = new Object();
     private final Properties props = new Properties();
 
-    public SettingsService(@Value("${ft8.config-file:ft8web.properties}") String path) {
+    public SettingsService(@Value("${ft8.config-file:ft8web.properties}") String path,
+                           @Value("${ft8.backfill-minutes:15}") int defaultBackfillMinutes) {
         this.file = Path.of(path);
+        this.defaultBackfillMinutes = defaultBackfillMinutes;
         load();
     }
 
@@ -71,10 +77,13 @@ public class SettingsService {
                     props.getProperty(KEY_PSK_HOST, DEFAULT_PSK_HOST),
                     parseInt(props.getProperty(KEY_PSK_PORT), DEFAULT_PSK_PORT),
                     Math.max(MIN_PSK_INTERVAL, parseInt(props.getProperty(KEY_PSK_INTERVAL), DEFAULT_PSK_INTERVAL)));
+            int backfill = clamp(parseInt(props.getProperty(KEY_BACKFILL), defaultBackfillMinutes),
+                    0, MAX_BACKFILL);
             return new Settings(
                     props.getProperty(KEY_CALLSIGN, ""),
                     props.getProperty(KEY_LOCATOR, ""),
                     props.getProperty(KEY_GRID_RESOLUTION, DEFAULT_GRID_RESOLUTION),
+                    backfill,
                     psk);
         }
     }
@@ -85,6 +94,8 @@ public class SettingsService {
             props.setProperty(KEY_CALLSIGN, norm(incoming.callsign()).toUpperCase());
             props.setProperty(KEY_LOCATOR, norm(incoming.locator()).toUpperCase());
             props.setProperty(KEY_GRID_RESOLUTION, normResolution(incoming.gridResolution()));
+            props.setProperty(KEY_BACKFILL,
+                    Integer.toString(clamp(incoming.backfillMinutes(), 0, MAX_BACKFILL)));
 
             Settings.Psk psk = incoming.psk() != null ? incoming.psk()
                     : new Settings.Psk(false, "", DEFAULT_PSK_HOST, DEFAULT_PSK_PORT, DEFAULT_PSK_INTERVAL);
@@ -112,6 +123,10 @@ public class SettingsService {
 
     private static int validPort(int port) {
         return (port >= 1 && port <= 65535) ? port : DEFAULT_PSK_PORT;
+    }
+
+    private static int clamp(int v, int lo, int hi) {
+        return Math.min(Math.max(v, lo), hi);
     }
 
     private void save() {
