@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-110m.json';
-import { fieldCell } from '../lib/maidenhead.js';
+import { cellRect } from '../lib/maidenhead.js';
 
 // Equirectangular canvas: 360° × 180° mapped 2:1. Each Maidenhead field (20°×10°)
 // is exactly one cell of an even 18×18 grid.
@@ -64,17 +64,11 @@ export default function WorldMap({ counts, region = 'world', home = null }) {
   const cells = useMemo(() => {
     const max = Math.max(1, ...Object.values(counts));
     return Object.entries(counts)
-      .map(([field, count]) => {
-        const cell = fieldCell(field);
-        if (!cell) return null;
+      .map(([cell, count]) => {
+        const rect = cellRect(cell, W, H);
+        if (!rect) return null;
         const intensity = Math.sqrt(count / max); // compress the range a little
-        return {
-          field,
-          count,
-          x: cell.col * CELL_W,
-          y: cell.rowFromTop * CELL_H,
-          opacity: 0.15 + 0.75 * intensity,
-        };
+        return { cell, count, ...rect, opacity: 0.15 + 0.75 * intensity };
       })
       .filter(Boolean);
   }, [counts]);
@@ -91,15 +85,15 @@ export default function WorldMap({ counts, region = 'world', home = null }) {
 
       {cells.map((c) => (
         <rect
-          key={c.field}
+          key={c.cell}
           x={c.x}
           y={c.y}
-          width={CELL_W}
-          height={CELL_H}
+          width={c.w}
+          height={c.h}
           className="map-heat"
           style={{ opacity: c.opacity }}
         >
-          <title>{`${c.field}: ${c.count}`}</title>
+          <title>{`${c.cell}: ${c.count}`}</title>
         </rect>
       ))}
 

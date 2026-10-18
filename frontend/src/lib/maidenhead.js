@@ -14,17 +14,30 @@ export function fieldOf(msg) {
 }
 
 /**
- * Field "XY" → cell indices on the 18×18 lattice:
- *   col 0..17  (longitude band, A at 180°W)
- *   rowFromTop 0..17  (latitude band from the top, i.e. 90°N down)
- * Returns null for an out-of-range field.
+ * Rectangle of a Maidenhead cell on an equirectangular canvas `width`×`height`.
+ * Accepts a 2-char field (20°×10°) or a 4-char square (2°×1°) and returns
+ * { x, y, w, h }, or null if the cell is malformed.
  */
-export function fieldCell(field) {
-  if (!field || field.length < 2) return null;
-  const lon = field.charCodeAt(0) - 65; // 'A' = 0
-  const lat = field.charCodeAt(1) - 65; // 'A' = 0 (from the south pole)
-  if (lon < 0 || lon > 17 || lat < 0 || lat > 17) return null;
-  return { col: lon, rowFromTop: 17 - lat };
+export function cellRect(cell, width, height) {
+  if (!cell || cell.length < 2) return null;
+  const f0 = cell.charCodeAt(0) - 65; // lon field 0..17
+  const f1 = cell.charCodeAt(1) - 65; // lat field 0..17 (from the south)
+  if (f0 < 0 || f0 > 17 || f1 < 0 || f1 > 17) return null;
+
+  if (cell.length >= 4) {
+    const s0 = cell.charCodeAt(2) - 48; // lon square 0..9
+    const s1 = cell.charCodeAt(3) - 48; // lat square 0..9
+    if (s0 < 0 || s0 > 9 || s1 < 0 || s1 > 9) return null;
+    const w = width / 180;
+    const h = height / 180;
+    const col = f0 * 10 + s0; // 0..179
+    const latIdx = f1 * 10 + s1; // 0..179 from the south
+    return { x: col * w, y: (179 - latIdx) * h, w, h };
+  }
+
+  const w = width / 18;
+  const h = height / 18;
+  return { x: f0 * w, y: (17 - f1) * h, w, h };
 }
 
 /** Center {lat, lon} of a 4- or 6-char Maidenhead locator, or null if invalid. */

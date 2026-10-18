@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import WorldMap, { REGIONS } from '../overview/WorldMap.jsx';
-import { useFieldHeat } from '../overview/useFieldHeat.js';
+import { useCellHeat } from '../overview/useCellHeat.js';
 import { useFeed } from '../feed/FeedProvider.jsx';
 import { fmtTime } from '../lib/format.js';
 import { locatorCenter } from '../lib/maidenhead.js';
 import { settingsUrl } from '../api.js';
 
 const WINDOW_OPTIONS = [5, 10, 15, 30, 60]; // minutes; capped server-side
+const RESOLUTIONS = [
+  { key: 'field', label: 'Field' },
+  { key: 'square', label: 'Square' },
+];
 const MINI_FEED = 15;
 
 // Small per-viewer preferences; safe to lose.
@@ -30,14 +34,22 @@ export default function OverviewView() {
   const [minutes, setMinutes] = useState(() => Number(loadPref('ov.minutes', '15')));
   const [region, setRegion] = useState(() => loadPref('ov.region', 'world'));
   const [home, setHome] = useState(null);
-  const counts = useFieldHeat(minutes);
+  // Resolution: a per-viewer override (if set) wins over the server default.
+  const [resOverride, setResOverride] = useState(() => loadPref('ov.resolution', ''));
+  const [resDefault, setResDefault] = useState('square');
+  const resolution = resOverride || resDefault;
+
+  const counts = useCellHeat(minutes, resolution);
   const { decodes } = useFeed();
 
-  // Own station marker from the configured locator.
+  // Own station marker + default grid resolution from the server settings.
   useEffect(() => {
     fetch(settingsUrl)
       .then((r) => r.json())
-      .then((s) => setHome(locatorCenter(s.locator)))
+      .then((s) => {
+        setHome(locatorCenter(s.locator));
+        if (s.gridResolution) setResDefault(s.gridResolution);
+      })
       .catch(() => {});
   }, []);
 
@@ -50,6 +62,10 @@ export default function OverviewView() {
   const changeRegion = (r) => {
     setRegion(r);
     savePref('ov.region', r);
+  };
+  const changeResolution = (r) => {
+    setResOverride(r);
+    savePref('ov.resolution', r);
   };
 
   return (
@@ -78,8 +94,19 @@ export default function OverviewView() {
               </button>
             ))}
           </div>
+          <div className="seg">
+            {RESOLUTIONS.map((r) => (
+              <button
+                key={r.key}
+                className={resolution === r.key ? 'active' : ''}
+                onClick={() => changeResolution(r.key)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
           <span className="map-caption">
-            {total} msg · {Object.keys(counts).length} fields · last {minutes} min
+            {total} msg · {Object.keys(counts).length} cells · last {minutes} min
           </span>
         </div>
         <WorldMap counts={counts} region={region} home={home} />
