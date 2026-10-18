@@ -91,6 +91,8 @@ All settings are overridable via environment variables (see
 
 | Env var              | Default        | Meaning                                   |
 |----------------------|----------------|-------------------------------------------|
+| `SERVER_PORT`        | 8080           | HTTP port                                 |
+| `SERVER_SERVLET_CONTEXT_PATH` | _(root)_ | mount everything under a path, e.g. `/ft8` |
 | `KAFKA_BOOTSTRAP`    | 192.168.50.59:9092 | Kafka bootstrap servers               |
 | `KAFKA_GROUP`        | ft8-monitor    | consumer group id                         |
 | `KAFKA_OFFSET_RESET` | latest         | `latest` (live) or `earliest` (backfill)  |
