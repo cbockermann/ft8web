@@ -6,6 +6,7 @@
   --muted: #7d8899;
   --accent: #4aa3ff;
   --selected: #23364d;
+  --heat: #ff8a3d;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -131,4 +132,73 @@ section h2 {
   font-size: 1rem;
   margin-bottom: 0.5rem;
   color: var(--accent);
+}
+
+/* --- Overview view: activity map + mini feed --- */
+.overview {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.map-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem;
+}
+
+.map-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seg button {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.seg button:hover { background: #212a35; color: var(--text); }
+.seg button.active { background: var(--selected); color: var(--text); }
+
+.map-caption {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.worldmap {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.map-ocean { fill: #0e1a26; }
+.map-land { fill: #223042; stroke: #2f4056; stroke-width: 0.5; }
+.map-grid { fill: none; stroke: #2a3340; stroke-width: 0.75; opacity: 0.55; }
+.map-heat { fill: var(--heat); }
+
+.mini-feed {
+  height: 30%;
+  max-height: 260px;
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  overflow-y: auto;
+  background: var(--panel);
 }

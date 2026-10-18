@@ -1,6 +1,7 @@
 package de.bockermann.ft8monitor.kafka;
 
 import de.bockermann.ft8monitor.model.Decode;
+import de.bockermann.ft8monitor.overview.GridFieldAggregator;
 import de.bockermann.ft8monitor.qso.QsoGrouper;
 import de.bockermann.ft8monitor.web.DecodeBroadcaster;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -22,11 +23,14 @@ public class DecodeListener {
     private final DecodeParser parser;
     private final QsoGrouper grouper;
     private final DecodeBroadcaster broadcaster;
+    private final GridFieldAggregator gridAggregator;
 
-    public DecodeListener(DecodeParser parser, QsoGrouper grouper, DecodeBroadcaster broadcaster) {
+    public DecodeListener(DecodeParser parser, QsoGrouper grouper, DecodeBroadcaster broadcaster,
+                          GridFieldAggregator gridAggregator) {
         this.parser = parser;
         this.grouper = grouper;
         this.broadcaster = broadcaster;
+        this.gridAggregator = gridAggregator;
     }
 
     @KafkaListener(topics = "${ft8.topic}", groupId = "${spring.kafka.consumer.group-id:ft8-monitor}")
@@ -42,6 +46,7 @@ public class DecodeListener {
             return;
         }
         grouper.add(decode);
+        gridAggregator.add(decode.unix(), decode.msg());
         broadcaster.broadcast(decode);
     }
 }
