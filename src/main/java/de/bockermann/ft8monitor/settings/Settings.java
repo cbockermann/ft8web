@@ -8,10 +8,14 @@ package de.bockermann.ft8monitor.settings;
  *                       empty).
  * @param gridResolution default activity-map resolution: {@code field} (2-char)
  *                       or {@code square} (4-char). Viewers can override it live.
+ * @param backfillMinutes on startup, replay this many minutes from Kafka to
+ *                        repopulate the in-memory views (0 = off). Takes effect
+ *                        on the next restart.
  * @param psk            PSKReporter feeder settings (reuses callsign/locator as
  *                       the reporting station's identity).
  */
-public record Settings(String callsign, String locator, String gridResolution, Psk psk) {
+public record Settings(String callsign, String locator, String gridResolution,
+                       int backfillMinutes, Psk psk) {
 
     /**
      * PSKReporter feeder configuration.

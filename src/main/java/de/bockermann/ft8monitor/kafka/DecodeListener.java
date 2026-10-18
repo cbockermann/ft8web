@@ -3,12 +3,12 @@ package de.bockermann.ft8monitor.kafka;
 import de.bockermann.ft8monitor.model.Decode;
 import de.bockermann.ft8monitor.overview.GridFieldAggregator;
 import de.bockermann.ft8monitor.qso.QsoGrouper;
+import de.bockermann.ft8monitor.settings.SettingsService;
 import de.bockermann.ft8monitor.web.DecodeBroadcaster;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.listener.ConsumerSeekAware;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * stable id ({@code partition@offset}), feeds it into the {@link QsoGrouper} and
  * the {@link GridFieldAggregator}, and pushes it to live SSE subscribers.
  *
- * <p>On startup it can replay the last {@code ft8.backfill-minutes} so the
+ * <p>On startup it can replay the last {@code backfill-minutes} (from the
+ * web-editable settings, defaulting to {@code ft8.backfill-minutes}) so the
  * in-memory views (recent decodes, QSOs, activity map) are repopulated after a
  * restart. The rewind runs once per partition per process (not on later
  * rebalances) so it never double-counts, and it only applies to this display
@@ -37,23 +38,23 @@ public class DecodeListener implements ConsumerSeekAware {
     private final QsoGrouper grouper;
     private final DecodeBroadcaster broadcaster;
     private final GridFieldAggregator gridAggregator;
-    private final int backfillMinutes;
+    private final SettingsService settings;
 
     /** Partitions already rewound this process; prevents replay on rebalances. */
     private final Set<TopicPartition> backfilled = ConcurrentHashMap.newKeySet();
 
     public DecodeListener(DecodeParser parser, QsoGrouper grouper, DecodeBroadcaster broadcaster,
-                          GridFieldAggregator gridAggregator,
-                          @Value("${ft8.backfill-minutes:15}") int backfillMinutes) {
+                          GridFieldAggregator gridAggregator, SettingsService settings) {
         this.parser = parser;
         this.grouper = grouper;
         this.broadcaster = broadcaster;
         this.gridAggregator = gridAggregator;
-        this.backfillMinutes = backfillMinutes;
+        this.settings = settings;
     }
 
     @Override
     public void onPartitionsAssigned(Map<TopicPartition, Long> assignments, ConsumerSeekCallback callback) {
+        int backfillMinutes = settings.get().backfillMinutes();
         if (backfillMinutes <= 0) {
             return;
         }

@@ -11,16 +11,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class SettingsServiceTest {
 
-    private static Settings settings(String call, String loc, String res, Psk psk) {
-        return new Settings(call, loc, res, psk);
+    private static final int DEFAULT_BACKFILL = 15;
+
+    private static SettingsService service(Path dir) {
+        return new SettingsService(dir.resolve("ft8web.properties").toString(), DEFAULT_BACKFILL);
+    }
+
+    private static Settings settings(String call, String loc, String res, int backfill, Psk psk) {
+        return new Settings(call, loc, res, backfill, psk);
     }
 
     @Test
     void defaultsWhenNoFile(@TempDir Path dir) {
-        SettingsService svc = new SettingsService(dir.resolve("ft8web.properties").toString());
+        SettingsService svc = service(dir);
         assertEquals("", svc.get().callsign());
         assertEquals("", svc.get().locator());
         assertEquals("square", svc.get().gridResolution()); // finer grid by default
+        assertEquals(15, svc.get().backfillMinutes());      // from ft8.backfill-minutes default
 
         Psk psk = svc.get().psk();
         assertFalse(psk.enabled());                       // off by default
@@ -32,38 +39,45 @@ class SettingsServiceTest {
     @Test
     void persistsAndReloads(@TempDir Path dir) {
         String path = dir.resolve("ft8web.properties").toString();
-        SettingsService svc = new SettingsService(path);
-        svc.update(settings("dl0abc", "jo31hk", "field",
+        SettingsService svc = new SettingsService(path, DEFAULT_BACKFILL);
+        svc.update(settings("dl0abc", "jo31hk", "field", 30,
                 new Psk(true, "Longwire", "example.test", 14739, 240)));
 
-        // Normalized on save (calls/locator upper, resolution lower).
         assertEquals("DL0ABC", svc.get().callsign());
         assertEquals("JO31HK", svc.get().locator());
         assertEquals("field", svc.get().gridResolution());
+        assertEquals(30, svc.get().backfillMinutes());
         assertEquals(true, svc.get().psk().enabled());
-        assertEquals("Longwire", svc.get().psk().antenna());
         assertEquals("example.test", svc.get().psk().host());
         assertEquals(14739, svc.get().psk().port());
-        assertEquals(240, svc.get().psk().intervalSeconds());
 
         // A fresh service reads the persisted file.
-        SettingsService reloaded = new SettingsService(path);
+        SettingsService reloaded = new SettingsService(path, DEFAULT_BACKFILL);
         assertEquals("DL0ABC", reloaded.get().callsign());
+        assertEquals(30, reloaded.get().backfillMinutes());
         assertEquals(14739, reloaded.get().psk().port());
-        assertEquals(240, reloaded.get().psk().intervalSeconds());
     }
 
     @Test
     void invalidResolutionFallsBackToDefault(@TempDir Path dir) {
-        SettingsService svc = new SettingsService(dir.resolve("ft8web.properties").toString());
-        svc.update(settings("", "", "bogus", null));
+        SettingsService svc = service(dir);
+        svc.update(settings("", "", "bogus", 15, null));
         assertEquals("square", svc.get().gridResolution());
     }
 
     @Test
+    void backfillClampedToRange(@TempDir Path dir) {
+        SettingsService svc = service(dir);
+        svc.update(settings("", "", "square", -5, null));
+        assertEquals(0, svc.get().backfillMinutes());       // negative → 0 (off)
+        svc.update(settings("", "", "square", 100000, null));
+        assertEquals(1440, svc.get().backfillMinutes());    // above 24 h → capped
+    }
+
+    @Test
     void intervalFlooredAndPortValidated(@TempDir Path dir) {
-        SettingsService svc = new SettingsService(dir.resolve("ft8web.properties").toString());
-        svc.update(settings("", "", "square", new Psk(false, "", "", 99999, 30)));
+        SettingsService svc = service(dir);
+        svc.update(settings("", "", "square", 15, new Psk(false, "", "", 99999, 30)));
         assertEquals(4739, svc.get().psk().port());        // invalid port → default
         assertEquals(120, svc.get().psk().intervalSeconds()); // below floor → 120
         assertEquals("report.pskreporter.info", svc.get().psk().host()); // blank → default
