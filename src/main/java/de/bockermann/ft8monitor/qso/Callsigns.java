@@ -28,6 +28,15 @@ public final class Callsigns {
     private static final Set<String> SIGNOFFS = Set.of(
             "RRR", "RR73", "73", "R73", "TU", "TU73", "QSL", "DE", "CQ", "DX");
 
+    /**
+     * Whether a token is a known FT8 sign-off / directive (e.g. {@code RR73},
+     * {@code 73}). Useful to disambiguate tokens that also look like a grid
+     * (notably {@code RR73}).
+     */
+    public static boolean isSignoff(String token) {
+        return SIGNOFFS.contains(token);
+    }
+
     /** The stations a message is between. */
     public sealed interface Stations {
         /** A {@code CQ} calling: a single caller looking for a contact. */

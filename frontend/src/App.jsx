@@ -11,8 +11,8 @@ export default function App() {
       <header>
         <h1>FT8 Monitor</h1>
         <nav className="nav">
-          <NavLink to="/feed">Feed</NavLink>
           <NavLink to="/overview">Overview</NavLink>
+          <NavLink to="/feed">Feed</NavLink>
           <NavLink to="/config">Config</NavLink>
         </nav>
         <span className={connected ? 'status ok' : 'status down'}>
@@ -21,13 +21,11 @@ export default function App() {
       </header>
 
       <Routes>
-        {/* Default lands on the feed for now; flips to /overview once the
-            overview view is built. */}
-        <Route path="/" element={<Navigate to="/feed" replace />} />
-        <Route path="/feed" element={<FeedView />} />
+        <Route path="/" element={<Navigate to="/overview" replace />} />
         <Route path="/overview" element={<OverviewView />} />
+        <Route path="/feed" element={<FeedView />} />
         <Route path="/config" element={<ConfigView />} />
-        <Route path="*" element={<Navigate to="/feed" replace />} />
+        <Route path="*" element={<Navigate to="/overview" replace />} />
       </Routes>
     </div>
   );
