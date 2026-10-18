@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import WorldMap, { REGIONS } from '../overview/WorldMap.jsx';
 import { useCellHeat } from '../overview/useCellHeat.js';
 import { useFeed } from '../feed/FeedProvider.jsx';
@@ -30,10 +30,20 @@ function savePref(key, value) {
   }
 }
 
+// Min height for the map and the feed panels when dragging the divider.
+const MIN_MAP = 160;
+const MIN_FEED = 120;
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
 export default function OverviewView() {
   const [minutes, setMinutes] = useState(() => Number(loadPref('ov.minutes', '15')));
   const [region, setRegion] = useState(() => loadPref('ov.region', 'world'));
   const [home, setHome] = useState(null);
+  const overviewRef = useRef(null);
+  const [mapHeight, setMapHeight] = useState(() => {
+    const v = loadPref('ov.mapHeight', '');
+    return v ? Number(v) : null;
+  });
   // Resolution: a per-viewer override (if set) wins over the server default.
   const [resOverride, setResOverride] = useState(() => loadPref('ov.resolution', ''));
   const [resDefault, setResDefault] = useState('square');
@@ -68,9 +78,48 @@ export default function OverviewView() {
     savePref('ov.resolution', r);
   };
 
+  // Default the split to ~62% of the available height, and keep it in range.
+  useEffect(() => {
+    const el = overviewRef.current;
+    if (!el) return undefined;
+    const fit = () => {
+      const h = el.clientHeight;
+      if (h <= 0) return;
+      setMapHeight((prev) => {
+        const target = prev == null ? Math.round(h * 0.62) : prev;
+        return clamp(target, MIN_MAP, Math.max(MIN_MAP, h - MIN_FEED));
+      });
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
+
+  const startDrag = (e) => {
+    e.preventDefault();
+    const el = overviewRef.current;
+    const startY = e.clientY;
+    const startH = mapHeight ?? el.firstChild.getBoundingClientRect().height;
+    let lastH = startH;
+    const move = (ev) => {
+      const maxH = Math.max(MIN_MAP, el.clientHeight - MIN_FEED);
+      lastH = clamp(startH + (ev.clientY - startY), MIN_MAP, maxH);
+      setMapHeight(lastH);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      savePref('ov.mapHeight', String(Math.round(lastH)));
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  const mapStyle = mapHeight == null ? undefined : { flex: '0 0 auto', height: `${mapHeight}px` };
+
   return (
-    <main className="overview">
-      <section className="map-panel">
+    <main className="overview" ref={overviewRef}>
+      <section className="map-panel" style={mapStyle}>
         <div className="map-controls">
           <div className="seg">
             {Object.entries(REGIONS).map(([key, r]) => (
@@ -111,6 +160,14 @@ export default function OverviewView() {
         </div>
         <WorldMap counts={counts} region={region} home={home} />
       </section>
+
+      <div
+        className="v-divider"
+        onPointerDown={startDrag}
+        role="separator"
+        aria-orientation="horizontal"
+        title="Drag to resize"
+      />
 
       <section className="mini-feed">
         <h2>Recent decodes</h2>

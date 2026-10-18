@@ -57,9 +57,16 @@ const GRID_LINES = (() => {
  * Equirectangular activity map: land background, Maidenhead field grid, and a
  * heat cell per active field (opacity scales with its message count).
  */
+// On-screen marker radius at the world scale, in world units.
+const HOME_R_WORLD = 2.5;
+
 export default function WorldMap({ counts, region = 'world', home = null }) {
   const view = REGIONS[region] ?? REGIONS.world;
   const homeXY = home ? project(home.lon, home.lat) : null;
+  // Scale the marker radius inversely to the zoom so it stays the same size
+  // on screen in the (zoomed-in) Europe view as in the world view.
+  const vbWidth = parseFloat(view.viewBox.split(/\s+/)[2]) || W;
+  const homeR = HOME_R_WORLD * (vbWidth / W);
 
   const cells = useMemo(() => {
     const max = Math.max(1, ...Object.values(counts));
@@ -103,7 +110,7 @@ export default function WorldMap({ counts, region = 'world', home = null }) {
         <circle
           cx={homeXY[0]}
           cy={homeXY[1]}
-          r="2.5"
+          r={homeR}
           className="map-home"
           vectorEffect="non-scaling-stroke"
         >
