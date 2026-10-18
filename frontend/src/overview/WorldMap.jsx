@@ -57,8 +57,9 @@ const GRID_LINES = (() => {
  * Equirectangular activity map: land background, Maidenhead field grid, and a
  * heat cell per active field (opacity scales with its message count).
  */
-export default function WorldMap({ counts, region = 'world' }) {
+export default function WorldMap({ counts, region = 'world', home = null }) {
   const view = REGIONS[region] ?? REGIONS.world;
+  const homeXY = home ? project(home.lon, home.lat) : null;
 
   const cells = useMemo(() => {
     const max = Math.max(1, ...Object.values(counts));
@@ -103,6 +104,18 @@ export default function WorldMap({ counts, region = 'world' }) {
       ))}
 
       <path d={GRID_LINES} className="map-grid" vectorEffect="non-scaling-stroke" />
+
+      {homeXY && (
+        <circle
+          cx={homeXY[0]}
+          cy={homeXY[1]}
+          r="2.5"
+          className="map-home"
+          vectorEffect="non-scaling-stroke"
+        >
+          <title>Your station</title>
+        </circle>
+      )}
     </svg>
   );
 }

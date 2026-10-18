@@ -26,3 +26,22 @@ export function fieldCell(field) {
   if (lon < 0 || lon > 17 || lat < 0 || lat > 17) return null;
   return { col: lon, rowFromTop: 17 - lat };
 }
+
+/** Center {lat, lon} of a 4- or 6-char Maidenhead locator, or null if invalid. */
+export function locatorCenter(loc) {
+  if (!loc) return null;
+  const s = loc.trim().toUpperCase();
+  if (!LOCATOR.test(s)) return null;
+  let lon = (s.charCodeAt(0) - 65) * 20 - 180;
+  let lat = (s.charCodeAt(1) - 65) * 10 - 90;
+  lon += (s.charCodeAt(2) - 48) * 2;
+  lat += (s.charCodeAt(3) - 48) * 1;
+  if (s.length === 6) {
+    lon += (s.charCodeAt(4) - 65) * (5 / 60) + (5 / 60) / 2;   // subsquare: 5' lon
+    lat += (s.charCodeAt(5) - 65) * (2.5 / 60) + (2.5 / 60) / 2; // 2.5' lat
+  } else {
+    lon += 1; // center of the 2° square
+    lat += 0.5; // center of the 1° square
+  }
+  return { lat, lon };
+}
