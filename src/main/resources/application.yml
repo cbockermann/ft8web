@@ -32,6 +32,9 @@ ft8:
   window-seconds: ${FT8_WINDOW_SECONDS:3600}     # rolling in-memory retention (~1h)
   gap-seconds: ${FT8_GAP_SECONDS:180}            # QSO split threshold
   eviction-interval-ms: ${FT8_EVICTION_MS:60000} # background eviction sweep
+  # On startup, replay the last N minutes so the in-memory views are repopulated
+  # after a restart (0 = off). Display consumer only; not the PSKReporter feeder.
+  backfill-minutes: ${FT8_BACKFILL_MINUTES:15}
 
   # Web-editable station settings (callsign, locator) are persisted here.
   config-file: ${FT8_CONFIG_FILE:ft8web.properties}

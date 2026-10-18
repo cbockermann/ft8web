@@ -124,6 +124,7 @@ All settings are overridable via environment variables (see
 | `FT8_TOPIC`          | ft8            | topic to consume (bridge produces here too) |
 | `FT8_WINDOW_SECONDS` | 3600           | rolling retention window                  |
 | `FT8_GAP_SECONDS`    | 180            | QSO split threshold                       |
+| `FT8_BACKFILL_MINUTES` | 15           | replay this many minutes on startup (0 = off) |
 | `FT8_BRIDGE_ENABLED` | false          | run the bundled UDP→Kafka bridge          |
 | `FT8_BRIDGE_BIND`    | 0.0.0.0        | bridge: interface to listen on            |
 | `FT8_BRIDGE_PORT`    | 5001           | bridge: UDP port (ft8mon `-json` target)  |
