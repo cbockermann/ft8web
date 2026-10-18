@@ -8,6 +8,26 @@ package de.bockermann.ft8monitor.settings;
  *                       empty).
  * @param gridResolution default activity-map resolution: {@code field} (2-char)
  *                       or {@code square} (4-char). Viewers can override it live.
+ * @param psk            PSKReporter feeder settings (reuses callsign/locator as
+ *                       the reporting station's identity).
  */
-public record Settings(String callsign, String locator, String gridResolution) {
+public record Settings(String callsign, String locator, String gridResolution, Psk psk) {
+
+    /**
+     * PSKReporter feeder configuration.
+     *
+     * @param enabled         report observed stations to PSKReporter.
+     * @param antenna         optional antenna description (free text).
+     * @param host            PSKReporter collector host.
+     * @param port            collector UDP port (4739 live, 14739 test).
+     * @param intervalSeconds how often to flush spots (≥ 120 s per etiquette).
+     */
+    public record Psk(
+            boolean enabled,
+            String antenna,
+            String host,
+            int port,
+            int intervalSeconds
+    ) {
+    }
 }

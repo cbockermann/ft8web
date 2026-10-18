@@ -46,6 +46,14 @@ ft8:
     key-field: ${FT8_BRIDGE_KEY:band}  # JSON field → Kafka key; blank for none
     validate: ${FT8_BRIDGE_VALIDATE:false}
 
+# PSKReporter feeder. The user-facing settings (enabled, antenna, host, port,
+# interval) live in the web-editable settings file alongside callsign/locator;
+# these are only the non-user-facing knobs.
+pskreporter:
+  kafka-group: ${PSKREPORTER_KAFKA_GROUP:pskreporter-${ft8.hostname}} # own consumer group
+  software: ${PSKREPORTER_SOFTWARE:ft8web}                            # reported decoder name
+  tick-ms: ${PSKREPORTER_TICK_MS:15000}                               # heartbeat/flush check
+
 management:
   endpoints:
     web:
