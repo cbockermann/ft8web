@@ -33,6 +33,9 @@ ft8:
   gap-seconds: ${FT8_GAP_SECONDS:180}            # QSO split threshold
   eviction-interval-ms: ${FT8_EVICTION_MS:60000} # background eviction sweep
 
+  # Web-editable station settings (callsign, locator) are persisted here.
+  config-file: ${FT8_CONFIG_FILE:ft8web.properties}
+
   # Bundled UDP→Kafka bridge: replaces ft8mon's scripts/udp_kafka_bridge.py.
   # Off by default; enable it on the host that receives ft8mon's -json output
   # (ft8mon ... -json <this-host>:5001). Data still flows UDP → Kafka → consumer.

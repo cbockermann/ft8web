@@ -39,3 +39,6 @@ src/main/resources/static/
 *.iml
 .vscode/
 .DS_Store
+
+# Runtime station settings (written via the config page)
+ft8web.properties

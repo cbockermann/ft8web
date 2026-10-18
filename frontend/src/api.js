@@ -7,6 +7,7 @@ const CTX = (typeof window !== 'undefined' && window.__CONTEXT_PATH__) || '';
 export const contextPath = CTX;
 export const apiBase = `${CTX}/api`;
 export const streamUrl = `${apiBase}/stream`;
+export const settingsUrl = `${apiBase}/settings`;
 
 export function qslUrl(decodeId) {
   return `${apiBase}/qsl/${encodeURIComponent(decodeId)}`;

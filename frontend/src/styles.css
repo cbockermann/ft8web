@@ -202,3 +202,46 @@ section h2 {
   overflow-y: auto;
   background: var(--panel);
 }
+
+/* --- Config view --- */
+.view.config { padding: 1rem; background: var(--panel); overflow-y: auto; }
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 360px;
+  margin-top: 0.5rem;
+}
+.config-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.config-form input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.4rem 0.55rem;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+}
+.config-form input:focus { outline: none; border-color: var(--accent); }
+.config-actions { display: flex; align-items: center; gap: 0.75rem; }
+.config-actions button {
+  background: var(--selected);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+}
+.config-actions button:disabled { opacity: 0.6; cursor: default; }
+.config-actions .ok { color: #6ee7a0; font-size: 0.85rem; }
+.config-actions .error { color: #ff9a9a; font-size: 0.85rem; }
+
+/* Own-station marker on the map. */
+.map-home { fill: var(--accent); stroke: #fff; stroke-width: 1; }

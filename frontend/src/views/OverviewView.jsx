@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import WorldMap, { REGIONS } from '../overview/WorldMap.jsx';
 import { useFieldHeat } from '../overview/useFieldHeat.js';
 import { useFeed } from '../feed/FeedProvider.jsx';
 import { fmtTime } from '../lib/format.js';
+import { locatorCenter } from '../lib/maidenhead.js';
+import { settingsUrl } from '../api.js';
 
 const WINDOW_OPTIONS = [5, 10, 15, 30, 60]; // minutes; capped server-side
 const MINI_FEED = 15;
@@ -27,8 +29,17 @@ function savePref(key, value) {
 export default function OverviewView() {
   const [minutes, setMinutes] = useState(() => Number(loadPref('ov.minutes', '15')));
   const [region, setRegion] = useState(() => loadPref('ov.region', 'world'));
+  const [home, setHome] = useState(null);
   const counts = useFieldHeat(minutes);
   const { decodes } = useFeed();
+
+  // Own station marker from the configured locator.
+  useEffect(() => {
+    fetch(settingsUrl)
+      .then((r) => r.json())
+      .then((s) => setHome(locatorCenter(s.locator)))
+      .catch(() => {});
+  }, []);
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
@@ -71,7 +82,7 @@ export default function OverviewView() {
             {total} msg · {Object.keys(counts).length} fields · last {minutes} min
           </span>
         </div>
-        <WorldMap counts={counts} region={region} />
+        <WorldMap counts={counts} region={region} home={home} />
       </section>
 
       <section className="mini-feed">
