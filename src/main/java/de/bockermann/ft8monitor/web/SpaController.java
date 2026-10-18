@@ -38,6 +38,7 @@ public class SpaController {
             "/", "/index.html",
             "/feed", "/feed/**",
             "/overview", "/overview/**",
+            "/stats", "/stats/**",
             "/config", "/config/**"
     }, produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody

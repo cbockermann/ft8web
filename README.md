@@ -109,6 +109,19 @@ interval, and applies a strict callsign filter so `i3=` mis-decodes and noise
 are never reported. Your own callsign is never self-reported. Disabled by
 default. Verify incoming spots by filtering for your call on pskreporter.info.
 
+## Report statistics (SQLite)
+
+The spots the feeder sends are aggregated into a small embedded **SQLite**
+database (`FT8_STATS_FILE`, default `ft8web-stats.db`) — counts per minute,
+broken down by **band** and **Maidenhead grid**. Raw spots are never stored, and
+old rows are pruned after `FT8_STATS_RETENTION_DAYS` (default 365).
+
+The **Stats** view shows, over a selectable range (hour / day / week / month):
+reports over time, a per-band breakdown, and an activity heatmap of where you
+reported from (field or square resolution, optional band filter). The data is
+served from `GET /api/stats`. The SQLite file is also available for ad-hoc
+queries and future features.
+
 ## Configuration
 
 All settings are overridable via environment variables (see
@@ -125,6 +138,8 @@ All settings are overridable via environment variables (see
 | `FT8_WINDOW_SECONDS` | 3600           | rolling retention window                  |
 | `FT8_GAP_SECONDS`    | 180            | QSO split threshold                       |
 | `FT8_BACKFILL_MINUTES` | 15           | default startup replay minutes (0 = off); editable on the Config page |
+| `FT8_STATS_FILE`     | ft8web-stats.db | SQLite file for report statistics       |
+| `FT8_STATS_RETENTION_DAYS` | 365      | how long to keep report statistics        |
 | `FT8_BRIDGE_ENABLED` | false          | run the bundled UDP→Kafka bridge          |
 | `FT8_BRIDGE_BIND`    | 0.0.0.0        | bridge: interface to listen on            |
 | `FT8_BRIDGE_PORT`    | 5001           | bridge: UDP port (ft8mon `-json` target)  |

@@ -42,3 +42,7 @@ src/main/resources/static/
 
 # Runtime station settings (written via the config page)
 ft8web.properties
+
+# SQLite statistics database (runtime data)
+ft8web-stats.db
+ft8web-stats.db-*

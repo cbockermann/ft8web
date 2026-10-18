@@ -9,6 +9,13 @@ server:
 spring:
   application:
     name: ft8-monitor
+  # Embedded SQLite for aggregated statistics (one file; reusable later).
+  datasource:
+    url: jdbc:sqlite:${FT8_STATS_FILE:ft8web-stats.db}
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1          # SQLite is single-writer; serialize access
+      connection-test-query: SELECT 1
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:192.168.50.59:9092}
     consumer:
@@ -35,6 +42,8 @@ ft8:
   # On startup, replay the last N minutes so the in-memory views are repopulated
   # after a restart (0 = off). Display consumer only; not the PSKReporter feeder.
   backfill-minutes: ${FT8_BACKFILL_MINUTES:15}
+  # How long to keep PSKReporter report statistics in SQLite (days).
+  stats-retention-days: ${FT8_STATS_RETENTION_DAYS:365}
 
   # Web-editable station settings (callsign, locator) are persisted here.
   config-file: ${FT8_CONFIG_FILE:ft8web.properties}
