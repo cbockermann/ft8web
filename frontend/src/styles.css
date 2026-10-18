@@ -194,10 +194,21 @@ section h2 {
 .map-grid { fill: none; stroke: #2a3340; stroke-width: 0.75; opacity: 0.55; }
 .map-heat { fill: var(--heat); }
 
+/* Draggable divider between the map and the recent-decodes feed. */
+.v-divider {
+  flex: 0 0 auto;
+  height: 7px;
+  cursor: row-resize;
+  background: var(--border);
+  border-top: 1px solid var(--bg);
+  border-bottom: 1px solid var(--bg);
+  touch-action: none;
+}
+.v-divider:hover { background: var(--accent); }
+
 .mini-feed {
-  height: 30%;
-  max-height: 260px;
-  border-top: 1px solid var(--border);
+  flex: 1 1 0;
+  min-height: 0;
   padding: 0.5rem 1rem;
   overflow-y: auto;
   background: var(--panel);
