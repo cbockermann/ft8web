@@ -94,7 +94,7 @@ All settings are overridable via environment variables (see
 | `SERVER_PORT`        | 8080           | HTTP port                                 |
 | `SERVER_SERVLET_CONTEXT_PATH` | _(root)_ | mount everything under a path, e.g. `/ft8` |
 | `KAFKA_BOOTSTRAP`    | 192.168.50.59:9092 | Kafka bootstrap servers               |
-| `KAFKA_GROUP`        | ft8-monitor    | consumer group id                         |
+| `KAFKA_GROUP`        | ft8-monitor-_&lt;hostname&gt;_ | consumer group id (per-host by default) |
 | `KAFKA_OFFSET_RESET` | latest         | `latest` (live) or `earliest` (backfill)  |
 | `FT8_TOPIC`          | ft8            | topic to consume (bridge produces here too) |
 | `FT8_WINDOW_SECONDS` | 3600           | rolling retention window                  |
