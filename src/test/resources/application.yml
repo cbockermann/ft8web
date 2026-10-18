@@ -1,5 +1,7 @@
 # Point the Kafka consumer/producer at the @EmbeddedKafka broker during tests.
 spring:
+  datasource:
+    url: jdbc:sqlite:${java.io.tmpdir}/ft8web-stats-test.db
   kafka:
     bootstrap-servers: ${spring.embedded.kafka.brokers}
     consumer:

@@ -4,6 +4,7 @@ import de.bockermann.ft8monitor.kafka.DecodeParser;
 import de.bockermann.ft8monitor.model.Decode;
 import de.bockermann.ft8monitor.settings.Settings;
 import de.bockermann.ft8monitor.settings.SettingsService;
+import de.bockermann.ft8monitor.stats.PskStatsRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -51,6 +52,7 @@ public class PskReporterFeeder {
     private final SettingsService settings;
     private final DecodeParser parser;
     private final KafkaListenerEndpointRegistry registry;
+    private final PskStatsRepository stats;
     private final SpotAggregator aggregator = new SpotAggregator();
     private final String software;
 
@@ -62,11 +64,12 @@ public class PskReporterFeeder {
     private DatagramSocket socket;
 
     public PskReporterFeeder(SettingsService settings, DecodeParser parser,
-                             KafkaListenerEndpointRegistry registry,
+                             KafkaListenerEndpointRegistry registry, PskStatsRepository stats,
                              @Value("${pskreporter.software:ft8web}") String software) {
         this.settings = settings;
         this.parser = parser;
         this.registry = registry;
+        this.stats = stats;
         this.software = software;
     }
 
@@ -174,6 +177,8 @@ public class PskReporterFeeder {
                 log.debug("PSKReporter IPFIX datagram: {}", hex(datagram));
             }
         }
+        // Record aggregated statistics for the reports just sent.
+        stats.record(spots, epoch());
     }
 
     private void scheduleNext(long now) {
