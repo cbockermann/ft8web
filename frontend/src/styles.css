@@ -188,9 +188,13 @@ section h2 {
   display: block;
   border: 1px solid var(--border);
   border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
 }
+.worldmap.panning { cursor: grabbing; }
 .map-ocean { fill: #0e1a26; }
-.map-land { fill: #223042; stroke: #2f4056; stroke-width: 0.5; }
+/* Country land fill + borders/coastlines (stroke stays crisp at any zoom). */
+.map-land { fill: #223042; stroke: #3b5168; stroke-width: 0.6; }
 .map-grid { fill: none; stroke: #2a3340; stroke-width: 0.75; opacity: 0.55; }
 .map-heat { fill: var(--heat); }
 
