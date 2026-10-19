@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { feature } from 'topojson-client';
-import landTopo from 'world-atlas/land-110m.json';
+import countriesTopo from 'world-atlas/countries-50m.json';
 import { cellRect } from '../lib/maidenhead.js';
 
 // Equirectangular canvas: 360° × 180° mapped 2:1. Each Maidenhead field (20°×10°)
@@ -12,12 +12,18 @@ const ROWS = 18;
 const CELL_W = W / COLS; // 40
 const CELL_H = H / ROWS; // 20
 
-// Viewports: the whole world, or a crop over Europe (same projection).
+const WORLD_BOX = [0, 0, W, H];
+// Europe + North Africa + the Levant: lon [-20, 45], lat [18, 72].
+const EUROPE_BOX = [320, 36, 130, 108];
+
+// Preset viewports (reset buttons); free zoom/pan works on top of them.
 export const REGIONS = {
-  world: { label: 'World', viewBox: `0 0 ${W} ${H}` },
-  // lon [-15, 40], lat [34, 72]
-  europe: { label: 'Europe', viewBox: '330 36 110 76' },
+  world: { label: 'World', box: WORLD_BOX },
+  europe: { label: 'Europe', box: EUROPE_BOX },
 };
+
+const MIN_W = 10; // strongest zoom-in (map units of width)
+const HOME_R_WORLD = 2.5; // marker radius at world scale (world units)
 
 const project = (lon, lat) => [((lon + 180) / 360) * W, ((90 - lat) / 180) * H];
 
@@ -37,15 +43,14 @@ function pathFromGeometry(geom) {
   return d;
 }
 
-// Build the land outline path once (static coastline data). The land object is
-// a GeometryCollection, so feature() yields a FeatureCollection.
-const LAND_PATH = (() => {
-  const fc = feature(landTopo, landTopo.objects.land);
+// Country polygons once: filled as land, stroked as borders/coastlines.
+const COUNTRIES_PATH = (() => {
+  const fc = feature(countriesTopo, countriesTopo.objects.countries);
   const features = fc.features ?? [fc];
   return features.map((f) => pathFromGeometry(f.geometry)).join('');
 })();
 
-// Static 18×18 grid lines.
+// Static 18×18 Maidenhead field grid.
 const GRID_LINES = (() => {
   const lines = [];
   for (let c = 0; c <= COLS; c++) lines.push(`M${c * CELL_W} 0V${H}`);
@@ -53,20 +58,93 @@ const GRID_LINES = (() => {
   return lines.join('');
 })();
 
-/**
- * Equirectangular activity map: land background, Maidenhead field grid, and a
- * heat cell per active field (opacity scales with its message count).
- */
-// On-screen marker radius at the world scale, in world units.
-const HOME_R_WORLD = 2.5;
+function clampView([x, y, w, h]) {
+  if (w > W) {
+    h = (h * W) / w;
+    w = W;
+  }
+  if (h > H) {
+    w = (w * H) / h;
+    h = H;
+  }
+  x = Math.min(Math.max(x, 0), W - w);
+  y = Math.min(Math.max(y, 0), H - h);
+  return [x, y, w, h];
+}
 
+function clientToUser(svg, cx, cy) {
+  const pt = svg.createSVGPoint();
+  pt.x = cx;
+  pt.y = cy;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return { x: 0, y: 0 };
+  const u = pt.matrixTransform(ctm.inverse());
+  return { x: u.x, y: u.y };
+}
+
+/**
+ * Equirectangular activity map with zoomable/pannable viewport: country land +
+ * borders, the Maidenhead field grid, a heat cell per active cell, and the
+ * own-station marker. Wheel to zoom, drag to pan; the region buttons reset the
+ * view. Everything shares the 720×360 projection, so it all zooms together.
+ */
 export default function WorldMap({ counts, region = 'world', home = null }) {
-  const view = REGIONS[region] ?? REGIONS.world;
+  const [view, setView] = useState(() => REGIONS[region]?.box ?? WORLD_BOX);
+  const viewRef = useRef(view);
+  const svgRef = useRef(null);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
+  // Reset to a preset when the region buttons change it.
+  useEffect(() => {
+    setView(REGIONS[region]?.box ?? WORLD_BOX);
+  }, [region]);
+
+  // Wheel zoom around the cursor (native listener so we can preventDefault).
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return undefined;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const [x, y, w, h] = viewRef.current;
+      const p = clientToUser(svg, e.clientX, e.clientY);
+      const factor = e.deltaY < 0 ? 1 / 1.15 : 1.15;
+      const nw = Math.min(Math.max(w * factor, MIN_W), W);
+      const nh = nw * (h / w);
+      const nx = p.x - (p.x - x) * (nw / w);
+      const ny = p.y - (p.y - y) * (nh / h);
+      setView(clampView([nx, ny, nw, nh]));
+    };
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const onPointerDown = (e) => {
+    const svg = svgRef.current;
+    const ctm = svg && svg.getScreenCTM();
+    if (!ctm) return;
+    const sx = ctm.a;
+    const sy = ctm.d;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const [vx0, vy0, vw0, vh0] = viewRef.current;
+    svg.classList.add('panning');
+    const move = (ev) => {
+      setView(clampView([vx0 + (startX - ev.clientX) / sx, vy0 + (startY - ev.clientY) / sy, vw0, vh0]));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      svg.classList.remove('panning');
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
   const homeXY = home ? project(home.lon, home.lat) : null;
-  // Scale the marker radius inversely to the zoom so it stays the same size
-  // on screen in the (zoomed-in) Europe view as in the world view.
-  const vbWidth = parseFloat(view.viewBox.split(/\s+/)[2]) || W;
-  const homeR = HOME_R_WORLD * (vbWidth / W);
+  const homeR = HOME_R_WORLD * (view[2] / W); // constant on-screen size at any zoom
 
   const cells = useMemo(() => {
     const max = Math.max(1, ...Object.values(counts));
@@ -74,7 +152,7 @@ export default function WorldMap({ counts, region = 'world', home = null }) {
       .map(([cell, count]) => {
         const rect = cellRect(cell, W, H);
         if (!rect) return null;
-        const intensity = Math.sqrt(count / max); // compress the range a little
+        const intensity = Math.sqrt(count / max);
         return { cell, count, ...rect, opacity: 0.15 + 0.75 * intensity };
       })
       .filter(Boolean);
@@ -82,13 +160,15 @@ export default function WorldMap({ counts, region = 'world', home = null }) {
 
   return (
     <svg
+      ref={svgRef}
       className="worldmap"
-      viewBox={view.viewBox}
+      viewBox={view.join(' ')}
       preserveAspectRatio="xMidYMid meet"
+      onPointerDown={onPointerDown}
       xmlns="http://www.w3.org/2000/svg"
     >
       <rect x="0" y="0" width={W} height={H} className="map-ocean" />
-      <path d={LAND_PATH} className="map-land" vectorEffect="non-scaling-stroke" />
+      <path d={COUNTRIES_PATH} className="map-land" fillRule="evenodd" vectorEffect="non-scaling-stroke" />
 
       {cells.map((c) => (
         <rect
