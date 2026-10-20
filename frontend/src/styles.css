@@ -443,9 +443,32 @@ section h2 {
 .meta { color: var(--muted); }
 .flag { white-space: nowrap; }
 
-/* --- MQTT live-report diagnostics (Stats view) --- */
-.mqtt-diag { margin-top: 0.25rem; }
-.mqtt-diag .feed-head { margin-bottom: 0.6rem; }
+/* --- Reports view (live PSKReporter MQTT diagnostics + reception map) --- */
+.reports-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  overflow-y: auto;
+  background: var(--panel);
+}
+.reports-view h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+.reports-map {
+  display: flex;
+  flex-direction: column;
+  height: 460px;
+  flex: 0 0 auto; /* keep full height; don't let the long list squeeze the map */
+}
+.reports-map .map-controls { justify-content: space-between; align-items: center; }
+.reports-map-tools { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.reports-list-panel .feed-head { margin-bottom: 0.6rem; }
+.reports-list-panel .mqtt-list { max-height: none; }
 .mqtt-controls {
   display: flex;
   align-items: center;

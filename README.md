@@ -122,14 +122,21 @@ reported from (field or square resolution, optional band filter). The data is
 served from `GET /api/stats`. The SQLite file is also available for ad-hoc
 queries and future features.
 
-### Live report diagnostics (PSKReporter MQTT)
+## Live report diagnostics (PSKReporter MQTT)
 
-At the bottom of the **Stats** view is a diagnostic tool: enter any callsign and
-ft8web subscribes to PSKReporter's public **MQTT** gateway
-(`mqtt.pskreporter.info`) and streams that station's live reports into the page —
-who is hearing it (**Heard**), who it is hearing (**Hearing**), or **Both**. Each
-row shows time, sender → receiver (with optional country flags), band, mode, SNR
-and grids.
+The **Reports** view is a diagnostic tool: enter any callsign and ft8web
+subscribes to PSKReporter's public **MQTT** gateway (`mqtt.pskreporter.info`)
+and streams that station's live reports into the page — who is hearing it
+(**Heard**), who it is hearing (**Hearing**), or **Both**.
+
+The results are shown two ways:
+
+- A **reception map** of the Maidenhead cells (field or square resolution) where
+  the callsign was received — i.e. the locators of the *other* station in each
+  report — so you get an at-a-glance picture of where the call is getting out.
+  Pan/zoom and World/Europe presets, same map as the overview.
+- A **live list** below it: time, sender → receiver (with optional country
+  flags), band, mode, SNR and grids.
 
 The backend keeps one shared MQTT connection and reference-counts the per-call
 topic subscriptions, relaying matching reports to the browser over SSE
