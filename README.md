@@ -42,7 +42,7 @@ profile, which downloads its own Node):
 
 ```bash
 ./mvnw clean package
-java -jar target/ft8-monitor-0.0.1-SNAPSHOT.jar
+java -jar target/ft8web-0.5.0-SNAPSHOT.jar
 ```
 
 Backend only (skip the frontend build — useful when the SPA is already built or
@@ -74,7 +74,7 @@ unchanged (UDP → Kafka → consumer); Kafka stays the backbone.
 Enable it on the host that receives ft8mon's `-json` output:
 
 ```bash
-FT8_BRIDGE_ENABLED=true java -jar target/ft8-monitor-0.0.1-SNAPSHOT.jar
+FT8_BRIDGE_ENABLED=true java -jar target/ft8web-0.5.0-SNAPSHOT.jar
 ```
 
 Point ft8mon at it (default UDP port 5001):

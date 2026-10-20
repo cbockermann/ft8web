@@ -12,9 +12,9 @@
     </parent>
 
     <groupId>de.bockermann</groupId>
-    <artifactId>ft8-monitor</artifactId>
+    <artifactId>ft8web</artifactId>
     <version>0.5.0-SNAPSHOT</version>
-    <name>ft8-monitor</name>
+    <name>ft8web</name>
     <description>Real-time web monitor for FT8 radio decodes (Kafka consumer, SSE feed, QSL detail)</description>
 
     <properties>
