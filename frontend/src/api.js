@@ -12,3 +12,7 @@ export const settingsUrl = `${apiBase}/settings`;
 export function qslUrl(decodeId) {
   return `${apiBase}/qsl/${encodeURIComponent(decodeId)}`;
 }
+
+export function recentUrl(limit) {
+  return `${apiBase}/recent?limit=${limit}`;
+}

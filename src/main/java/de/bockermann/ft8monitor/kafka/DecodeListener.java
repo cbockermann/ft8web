@@ -5,6 +5,7 @@ import de.bockermann.ft8monitor.overview.GridFieldAggregator;
 import de.bockermann.ft8monitor.qso.QsoGrouper;
 import de.bockermann.ft8monitor.settings.SettingsService;
 import de.bockermann.ft8monitor.web.DecodeBroadcaster;
+import de.bockermann.ft8monitor.web.RecentDecodes;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -38,17 +39,20 @@ public class DecodeListener implements ConsumerSeekAware {
     private final QsoGrouper grouper;
     private final DecodeBroadcaster broadcaster;
     private final GridFieldAggregator gridAggregator;
+    private final RecentDecodes recent;
     private final SettingsService settings;
 
     /** Partitions already rewound this process; prevents replay on rebalances. */
     private final Set<TopicPartition> backfilled = ConcurrentHashMap.newKeySet();
 
     public DecodeListener(DecodeParser parser, QsoGrouper grouper, DecodeBroadcaster broadcaster,
-                          GridFieldAggregator gridAggregator, SettingsService settings) {
+                          GridFieldAggregator gridAggregator, RecentDecodes recent,
+                          SettingsService settings) {
         this.parser = parser;
         this.grouper = grouper;
         this.broadcaster = broadcaster;
         this.gridAggregator = gridAggregator;
+        this.recent = recent;
         this.settings = settings;
     }
 
@@ -81,6 +85,7 @@ public class DecodeListener implements ConsumerSeekAware {
         }
         grouper.add(decode);
         gridAggregator.add(decode.unix(), decode.msg());
+        recent.add(decode);
         broadcaster.broadcast(decode);
     }
 }
