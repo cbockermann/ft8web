@@ -65,6 +65,9 @@ pskreporter:
   kafka-group: ${PSKREPORTER_KAFKA_GROUP:pskreporter-${ft8.hostname}} # own consumer group
   software: ${PSKREPORTER_SOFTWARE:ft8web 0.2.0}                      # reported decoder name
   tick-ms: ${PSKREPORTER_TICK_MS:15000}                               # heartbeat/flush check
+  # Public MQTT gateway for the callsign live-report diagnostics (Stats view).
+  mqtt-host: ${PSKREPORTER_MQTT_HOST:mqtt.pskreporter.info}
+  mqtt-port: ${PSKREPORTER_MQTT_PORT:1883}
 
 management:
   endpoints:

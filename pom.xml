@@ -49,6 +49,13 @@
             <version>3.47.1.0</version>
         </dependency>
 
+        <!-- MQTT client for the PSKReporter live-report diagnostics. -->
+        <dependency>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+            <version>1.2.5</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

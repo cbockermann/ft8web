@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import WorldMap, { REGIONS } from '../overview/WorldMap.jsx';
+import MqttReports from '../components/MqttReports.jsx';
 import { apiBase } from '../api.js';
 
 const RANGES = [
@@ -159,6 +160,8 @@ export default function StatsView() {
         </div>
         <WorldMap counts={heat} region={region} />
       </section>
+
+      <MqttReports />
     </main>
   );
 }
