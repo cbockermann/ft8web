@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useFeed } from '../feed/FeedProvider.jsx';
 import { qslUrl } from '../api.js';
 import { fmtTime } from '../lib/format.js';
@@ -28,11 +28,17 @@ export default function FeedView() {
   const filter = useCallsignFilter('feed.filter');
   const [showMeta, setShowMeta] = useMetaToggle('feed.showMeta');
   const [showFlags, setShowFlags] = useMetaToggle('feed.showFlags');
-  const metaFor = useLocatorMeta(decodes, showMeta);
-  const flagFor = useCallsignFlags(decodes, showFlags);
   const [selectedId, setSelectedId] = useState(null);
   const [qsl, setQsl] = useState(null);
   const [qslError, setQslError] = useState(null);
+
+  // Resolve flags/meta for the feed and the selected QSO's messages alike.
+  const annotated = useMemo(
+    () => (qsl?.messages ? [...decodes, ...qsl.messages] : decodes),
+    [decodes, qsl],
+  );
+  const metaFor = useLocatorMeta(annotated, showMeta);
+  const flagFor = useCallsignFlags(annotated, showFlags);
 
   const shown = decodes.filter((d) => filter.matches(d.msg));
 
@@ -91,15 +97,25 @@ export default function FeedView() {
         {qsl && (
           <div>
             <div className="pair">
-              {qsl.callA}
-              {qsl.callB ? ` ↔ ${qsl.callB}` : ' (CQ)'}
+              <MessageText msg={qsl.callA} flagFor={flagFor} />
+              {qsl.callB ? (
+                <>
+                  {' ↔ '}
+                  <MessageText msg={qsl.callB} flagFor={flagFor} />
+                </>
+              ) : (
+                ' (CQ)'
+              )}
             </div>
             <ul className="rows">
               {qsl.messages.map((d) => (
                 <li key={d.id} className={d.id === selectedId ? 'row selected' : 'row'}>
                   <span className="col time">{fmtTime(d)}</span>
                   <span className="col snr">{d.snr ?? ''}</span>
-                  <span className="col msg">{d.msg}</span>
+                  <span className="col msg">
+                    <MessageText msg={d.msg} flagFor={flagFor} />
+                    <MetaSpan meta={metaFor(d.msg)} />
+                  </span>
                 </li>
               ))}
             </ul>
