@@ -3,11 +3,12 @@ import { useFeed } from '../feed/FeedProvider.jsx';
 import { qslUrl } from '../api.js';
 import { fmtTime } from '../lib/format.js';
 import { useCallsignFilter } from '../lib/callsignFilter.js';
-import { useLocatorMeta, useMetaToggle } from '../lib/locatorMeta.js';
+import { useLocatorMeta, useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
 import FilterInput from '../components/FilterInput.jsx';
 import MetaSpan from '../components/MetaSpan.jsx';
+import MessageText from '../components/MessageText.jsx';
 
-function DecodeRow({ d, selected, meta, onClick }) {
+function DecodeRow({ d, selected, meta, flagFor, onClick }) {
   const band = d.tags && d.tags.band;
   return (
     <li className={selected ? 'row selected' : 'row'} onClick={onClick}>
@@ -15,7 +16,7 @@ function DecodeRow({ d, selected, meta, onClick }) {
       <span className="col snr">{d.snr ?? ''}</span>
       {band && <span className="col band">{band}</span>}
       <span className="col msg">
-        {d.msg}
+        <MessageText msg={d.msg} flagFor={flagFor} />
         <MetaSpan meta={meta} />
       </span>
     </li>
@@ -25,8 +26,10 @@ function DecodeRow({ d, selected, meta, onClick }) {
 export default function FeedView() {
   const { decodes } = useFeed();
   const filter = useCallsignFilter('feed.filter');
-  const [showMeta, setShowMeta] = useMetaToggle();
+  const [showMeta, setShowMeta] = useMetaToggle('feed.showMeta');
+  const [showFlags, setShowFlags] = useMetaToggle('feed.showFlags');
   const metaFor = useLocatorMeta(decodes, showMeta);
+  const flagFor = useCallsignFlags(decodes, showFlags);
   const [selectedId, setSelectedId] = useState(null);
   const [qsl, setQsl] = useState(null);
   const [qslError, setQslError] = useState(null);
@@ -52,7 +55,11 @@ export default function FeedView() {
         <div className="feed-head">
           <h2>Live decodes</h2>
           <div className="feed-tools">
-            <label className="meta-toggle" title="Show country from the locator (meta)">
+            <label className="meta-toggle" title="Country flag next to each callsign (from the prefix)">
+              <input type="checkbox" checked={showFlags} onChange={(e) => setShowFlags(e.target.checked)} />
+              Flags
+            </label>
+            <label className="meta-toggle" title="Country/region from the locator, in parentheses">
               <input type="checkbox" checked={showMeta} onChange={(e) => setShowMeta(e.target.checked)} />
               Meta
             </label>
@@ -70,6 +77,7 @@ export default function FeedView() {
               d={d}
               selected={d.id === selectedId}
               meta={metaFor(d.msg)}
+              flagFor={flagFor}
               onClick={() => selectDecode(d)}
             />
           ))}

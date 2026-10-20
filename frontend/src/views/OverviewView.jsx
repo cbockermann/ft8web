@@ -5,9 +5,10 @@ import { useFeed } from '../feed/FeedProvider.jsx';
 import { fmtTime } from '../lib/format.js';
 import { locatorCenter } from '../lib/maidenhead.js';
 import { useCallsignFilter } from '../lib/callsignFilter.js';
-import { useLocatorMeta, useMetaToggle } from '../lib/locatorMeta.js';
+import { useLocatorMeta, useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
 import FilterInput from '../components/FilterInput.jsx';
 import MetaSpan from '../components/MetaSpan.jsx';
+import MessageText from '../components/MessageText.jsx';
 import { settingsUrl } from '../api.js';
 
 const WINDOW_OPTIONS = [5, 10, 15, 30, 60]; // minutes; capped server-side
@@ -56,9 +57,11 @@ export default function OverviewView() {
   const counts = useCellHeat(minutes, resolution);
   const { decodes } = useFeed();
   const filter = useCallsignFilter('ov.feedFilter');
-  const [showMeta, setShowMeta] = useMetaToggle();
+  const [showMeta, setShowMeta] = useMetaToggle('feed.showMeta');
+  const [showFlags, setShowFlags] = useMetaToggle('feed.showFlags');
   const shownDecodes = decodes.filter((d) => filter.matches(d.msg)).slice(0, MINI_FEED);
   const metaFor = useLocatorMeta(shownDecodes, showMeta);
+  const flagFor = useCallsignFlags(shownDecodes, showFlags);
 
   // Own station marker + default grid resolution from the server settings.
   useEffect(() => {
@@ -181,7 +184,11 @@ export default function OverviewView() {
         <div className="feed-head">
           <h2>Recent decodes</h2>
           <div className="feed-tools">
-            <label className="meta-toggle" title="Show country from the locator (meta)">
+            <label className="meta-toggle" title="Country flag next to each callsign (from the prefix)">
+              <input type="checkbox" checked={showFlags} onChange={(e) => setShowFlags(e.target.checked)} />
+              Flags
+            </label>
+            <label className="meta-toggle" title="Country/region from the locator, in parentheses">
               <input type="checkbox" checked={showMeta} onChange={(e) => setShowMeta(e.target.checked)} />
               Meta
             </label>
@@ -199,7 +206,7 @@ export default function OverviewView() {
               <span className="col snr">{d.snr ?? ''}</span>
               {d.tags && d.tags.band && <span className="col band">{d.tags.band}</span>}
               <span className="col msg">
-                {d.msg}
+                <MessageText msg={d.msg} flagFor={flagFor} />
                 <MetaSpan meta={metaFor(d.msg)} />
               </span>
             </li>
