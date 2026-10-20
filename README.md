@@ -122,6 +122,23 @@ reported from (field or square resolution, optional band filter). The data is
 served from `GET /api/stats`. The SQLite file is also available for ad-hoc
 queries and future features.
 
+### Live report diagnostics (PSKReporter MQTT)
+
+At the bottom of the **Stats** view is a diagnostic tool: enter any callsign and
+ft8web subscribes to PSKReporter's public **MQTT** gateway
+(`mqtt.pskreporter.info`) and streams that station's live reports into the page —
+who is hearing it (**Heard**), who it is hearing (**Hearing**), or **Both**. Each
+row shows time, sender → receiver (with optional country flags), band, mode, SNR
+and grids.
+
+The backend keeps one shared MQTT connection and reference-counts the per-call
+topic subscriptions, relaying matching reports to the browser over SSE
+(`GET /api/mqtt/reports?call=DL1ABC&role=both`). It only **subscribes**; nothing
+is published. PSKReporter delivers per station in bursts (stations upload every
+few minutes), so a freshly watched call may sit idle a short while before its
+next batch arrives. Broker host/port are configurable (`PSKREPORTER_MQTT_HOST` /
+`PSKREPORTER_MQTT_PORT`).
+
 ## Locator / callsign lookup
 
 Two offline lookups power the feed annotations and the REST API:
@@ -166,6 +183,8 @@ All settings are overridable via environment variables (see
 | `FT8_BRIDGE_VALIDATE`| false          | bridge: skip non-JSON datagrams           |
 | `PSKREPORTER_KAFKA_GROUP` | pskreporter-_&lt;hostname&gt;_ | feeder's own consumer group    |
 | `PSKREPORTER_SOFTWARE` | ft8web       | decoder name reported to PSKReporter      |
+| `PSKREPORTER_MQTT_HOST` | mqtt.pskreporter.info | MQTT gateway for the live-report diagnostics |
+| `PSKREPORTER_MQTT_PORT` | 1883         | MQTT gateway port (plain TCP)             |
 
 PSKReporter's user-facing settings (enable, antenna, host, port, interval) are
 edited on the **Config page**, not via env vars — they live in the settings file

@@ -442,3 +442,68 @@ section h2 {
 .meta-toggle input { width: auto; }
 .meta { color: var(--muted); }
 .flag { white-space: nowrap; }
+
+/* --- MQTT live-report diagnostics (Stats view) --- */
+.mqtt-diag { margin-top: 0.25rem; }
+.mqtt-diag .feed-head { margin-bottom: 0.6rem; }
+.mqtt-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+.mqtt-start {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: #fff;
+  padding: 0.2rem 0.9rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.mqtt-start:disabled { opacity: 0.45; cursor: default; }
+.mqtt-start.on { background: var(--selected); border-color: var(--border); color: var(--text); }
+.mqtt-status {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mqtt-status.live { color: var(--accent); }
+.mqtt-status.error { color: #e06c6c; }
+
+.mqtt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 340px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+}
+.mqtt-empty { color: var(--muted); padding: 0.4rem 0; }
+.mqtt-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.mqtt-time {
+  color: var(--muted);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.mqtt-path { flex: 1 1 auto; }
+.mqtt-arrow { color: var(--muted); }
+.mqtt-tags {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mqtt-band { color: var(--text); font-family: ui-monospace, Menlo, monospace; }
+.mqtt-mode { color: var(--muted); }
+.mqtt-snr { color: var(--accent); }
+.mqtt-grid { color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
