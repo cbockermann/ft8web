@@ -134,7 +134,10 @@ The results are shown two ways:
 - A **reception map** of the Maidenhead cells (field or square resolution) where
   the callsign was received — i.e. the locators of the *other* station in each
   report — so you get an at-a-glance picture of where the call is getting out.
-  Pan/zoom and World/Europe presets, same map as the overview.
+  Each cell is coloured by the **mean reception level (SNR)** on a sequential
+  warm scale (see the legend); hovering a cell shows its **min / max / avg dB**
+  and a small bar chart of every report's dB in arrival order. Pan/zoom and
+  World/Europe presets, same map as the overview.
 - A **live list** below it: time, sender → receiver (with optional country
   flags), band, mode, SNR and grids.
 

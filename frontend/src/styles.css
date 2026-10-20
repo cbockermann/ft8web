@@ -469,6 +469,53 @@ section h2 {
 .reports-map-tools { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .reports-list-panel .feed-head { margin-bottom: 0.6rem; }
 .reports-list-panel .mqtt-list { max-height: none; }
+
+/* SNR colour-scale legend in the map controls. */
+.snr-legend { display: flex; align-items: center; gap: 0.35rem; }
+.snr-legend-bar {
+  display: inline-block;
+  width: 84px;
+  height: 0.6rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.snr-legend-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Per-cell hover tooltip: min/max/avg + a bar per report in arrival order. */
+.cell-tip {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+.cell-tip-head { font-size: 0.8rem; color: var(--text); margin-bottom: 0.3rem; }
+.cell-tip-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 0.35rem;
+}
+.cell-tip-avg { color: var(--text); }
+.cell-tip-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 34px;
+  overflow: hidden;
+}
+.cell-tip-bar { flex: 0 0 auto; width: 3px; min-height: 2px; border-radius: 1px 1px 0 0; }
+.cell-tip-foot { font-size: 0.68rem; color: var(--muted); margin-top: 0.3rem; }
 .mqtt-controls {
   display: flex;
   align-items: center;

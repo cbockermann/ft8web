@@ -4,6 +4,16 @@ import { apiBase, settingsUrl } from '../api.js';
 import { fmtTime } from '../lib/format.js';
 import { locatorCenter } from '../lib/maidenhead.js';
 import { useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
+import { snrColor, SNR_MIN, SNR_MAX, SNR_GRADIENT, fmtDb } from '../lib/snr.js';
+
+// Bar-chart geometry for the per-cell hover tooltip.
+const BAR_MIN_H = 3;
+const BAR_MAX_H = 34;
+const MAX_BARS = 120; // cap the tooltip chart; show the most recent this many
+const barHeight = (db) => {
+  const t = Math.max(0, Math.min(1, (db - SNR_MIN) / (SNR_MAX - SNR_MIN)));
+  return BAR_MIN_H + (BAR_MAX_H - BAR_MIN_H) * t;
+};
 
 const MAX_ROWS = 500;
 
@@ -73,6 +83,7 @@ export default function ReportsView() {
   const [region, setRegion] = useState(() => loadPref('rp.region', 'world'));
   const [showFlags, setShowFlags] = useMetaToggle('feed.showMeta');
   const [home, setHome] = useState(null);
+  const [hover, setHover] = useState(null); // { cell, x, y } for the tooltip
   const esRef = useRef(null);
 
   // Own-station marker, from the configured locator.
@@ -131,15 +142,37 @@ export default function ReportsView() {
   const changeLevel = pick(setLevel, 'rp.level');
   const changeRegion = pick(setRegion, 'rp.region');
 
-  // Heat cells: the counterpart locator of each report, bucketed by field/square.
-  const counts = useMemo(() => {
-    const out = {};
-    for (const d of reports) {
+  // Per-cell reception stats: the counterpart locator of each report, bucketed
+  // by field/square, with min/max/avg SNR and the dB series in arrival order.
+  const cellStats = useMemo(() => {
+    const m = {};
+    // reports is newest-first; walk backwards so each series is oldest-first.
+    for (let i = reports.length - 1; i >= 0; i--) {
+      const d = reports[i];
       const key = cellKey(counterpartGrid(d, watching), level);
-      if (key) out[key] = (out[key] || 0) + 1;
+      if (!key) continue;
+      const db = typeof d.rp === 'number' ? d.rp : d.rp != null ? Number(d.rp) : null;
+      if (db == null || Number.isNaN(db)) continue;
+      let s = m[key];
+      if (!s) s = m[key] = { count: 0, min: Infinity, max: -Infinity, sum: 0, series: [] };
+      s.count += 1;
+      s.sum += db;
+      if (db < s.min) s.min = db;
+      if (db > s.max) s.max = db;
+      s.series.push(db);
     }
-    return out;
+    for (const k in m) m[k].avg = m[k].sum / m[k].count;
+    return m;
   }, [reports, watching, level]);
+
+  const counts = useMemo(
+    () => Object.fromEntries(Object.entries(cellStats).map(([k, s]) => [k, s.count])),
+    [cellStats],
+  );
+  const colorFor = (cell) => {
+    const s = cellStats[cell];
+    return s ? snrColor(s.avg) : null;
+  };
 
   const cellCount = Object.keys(counts).length;
   const mapTitle =
@@ -177,6 +210,18 @@ export default function ReportsView() {
           ? 'error'
           : '';
 
+  // Hover tooltip over a map cell: track the cell + cursor, clamp to viewport.
+  const onCellEnter = (cell, e) => setHover({ cell, x: e.clientX, y: e.clientY });
+  const onCellMove = (e) => setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : h));
+  const onCellLeave = () => setHover(null);
+
+  const hoverStats = hover ? cellStats[hover.cell] : null;
+  const TIP_W = 250;
+  const TIP_H = 118;
+  const tipLeft = hover ? (hover.x + TIP_W + 20 > window.innerWidth ? hover.x - TIP_W - 14 : hover.x + 14) : 0;
+  const tipTop = hover ? (hover.y + TIP_H + 20 > window.innerHeight ? hover.y - TIP_H - 14 : hover.y + 14) : 0;
+  const tipBars = hoverStats ? hoverStats.series.slice(-MAX_BARS) : [];
+
   return (
     <main className="reports-view">
       <form className="mqtt-controls" onSubmit={submit}>
@@ -209,6 +254,11 @@ export default function ReportsView() {
             <span className="map-caption">
               {reports.length} reports · {cellCount} {level === 'square' ? 'squares' : 'fields'}
             </span>
+            <div className="snr-legend" title="Cell colour = mean reception level (SNR)">
+              <span className="snr-legend-label">{SNR_MIN}</span>
+              <span className="snr-legend-bar" style={{ background: SNR_GRADIENT }} />
+              <span className="snr-legend-label">{fmtDb(SNR_MAX)} dB</span>
+            </div>
             <div className="seg">
               {LEVELS.map((l) => (
                 <button key={l.key} className={level === l.key ? 'active' : ''} onClick={() => changeLevel(l.key)}>
@@ -225,8 +275,40 @@ export default function ReportsView() {
             </div>
           </div>
         </div>
-        <WorldMap counts={counts} region={region} home={home} />
+        <WorldMap
+          counts={counts}
+          region={region}
+          home={home}
+          colorFor={colorFor}
+          onCellEnter={onCellEnter}
+          onCellMove={onCellMove}
+          onCellLeave={onCellLeave}
+        />
       </section>
+
+      {hoverStats && (
+        <div className="cell-tip" style={{ left: tipLeft, top: tipTop, width: TIP_W }}>
+          <div className="cell-tip-head">
+            <strong>{hover.cell}</strong> · {hoverStats.count} report{hoverStats.count === 1 ? '' : 's'}
+          </div>
+          <div className="cell-tip-stats">
+            <span>min {fmtDb(hoverStats.min)}</span>
+            <span className="cell-tip-avg">avg {fmtDb(hoverStats.avg, 1)}</span>
+            <span>max {fmtDb(hoverStats.max)}</span>
+          </div>
+          <div className="cell-tip-bars" aria-hidden="true">
+            {tipBars.map((db, i) => (
+              <span
+                key={i}
+                className="cell-tip-bar"
+                style={{ height: `${barHeight(db)}px`, background: snrColor(db) }}
+                title={`${fmtDb(db)} dB`}
+              />
+            ))}
+          </div>
+          <div className="cell-tip-foot">dB per report, oldest → newest</div>
+        </div>
+      )}
 
       <section className="stats-panel reports-list-panel">
         <div className="feed-head">
