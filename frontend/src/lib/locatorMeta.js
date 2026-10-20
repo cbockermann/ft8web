@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiBase } from '../api.js';
 import { gridOf } from './maidenhead.js';
+import { callTokens } from './callsign.js';
 
 const MAX_PER_REQUEST = 100;
 
@@ -54,7 +55,12 @@ export function useLocatorMeta(decodes, enabled) {
       .then((map) => {
         for (const g of batch) {
           const info = map[g];
-          cache.current.set(g, info && info.country ? { country: info.country, cc: info.cc, flag: info.flag } : null);
+          cache.current.set(
+            g,
+            info && info.country
+              ? { country: info.country, region: info.region, cc: info.cc, flag: info.flag }
+              : null,
+          );
         }
         bump((x) => x + 1);
       })
@@ -66,4 +72,38 @@ export function useLocatorMeta(decodes, enabled) {
     const g = gridOf(msg);
     return g ? cache.current.get(g) ?? null : null;
   };
+}
+
+/**
+ * Resolve each callsign in the decodes to its country flag via GET /api/callsigns,
+ * cached by call. Returns `flagFor(call)` → { cc, flag, country } or null.
+ */
+export function useCallsignFlags(decodes, enabled) {
+  const cache = useRef(new Map()); // call -> { cc, flag, country } | null
+  const [, bump] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const missing = [];
+    for (const d of decodes) {
+      for (const call of callTokens(d.msg)) {
+        if (!cache.current.has(call) && !missing.includes(call)) missing.push(call);
+      }
+    }
+    if (missing.length === 0) return;
+    const batch = missing.slice(0, MAX_PER_REQUEST);
+    batch.forEach((c) => cache.current.set(c, null));
+    fetch(`${apiBase}/callsigns?calls=${encodeURIComponent(batch.join(','))}`)
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((map) => {
+        for (const c of batch) {
+          const info = map[c];
+          cache.current.set(c, info && info.flag ? { cc: info.cc, flag: info.flag, country: info.country } : null);
+        }
+        bump((x) => x + 1);
+      })
+      .catch(() => {});
+  }, [decodes, enabled]);
+
+  return (call) => (enabled && call ? cache.current.get(call.toUpperCase()) ?? null : null);
 }

@@ -10,47 +10,53 @@ import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Resolves a geographic point (lon/lat) to a country by point-in-polygon against
- * bundled Natural Earth country borders ({@code countries.json}, coordinates
- * rounded to ~1&nbsp;km). Used to annotate decodes/locators with the country and
- * its ISO code (for a flag).
+ * Resolves a geographic point (lon/lat) to its country and finest region
+ * (admin-1 state/province) by point-in-polygon against bundled Natural Earth
+ * borders ({@code regions.json}, 10m admin-1 simplified to ~11&nbsp;km). Also
+ * provides country name by ISO code and the flag emoji.
  */
 @Component
-public class CountryLookup {
+public class GeoLookup {
 
-    private static final Logger log = LoggerFactory.getLogger(CountryLookup.class);
+    private static final Logger log = LoggerFactory.getLogger(GeoLookup.class);
 
-    /** One country: name, ISO alpha-2, bounding box, and its polygons (rings). */
-    private record Country(String name, String cc,
-                           double minLon, double minLat, double maxLon, double maxLat,
-                           List<List<float[]>> polygons) {
+    private record Region(String region, String country, String cc,
+                          double minLon, double minLat, double maxLon, double maxLat,
+                          List<List<float[]>> polygons) {
     }
 
-    /** Resolved country for a point. */
-    public record Match(String country, String cc) {
+    /** Resolved place for a point: country, finest region (may be empty), ISO code. */
+    public record Place(String country, String region, String cc) {
     }
 
-    private List<Country> countries = List.of();
+    private List<Region> regions = List.of();
+    private final Map<String, String> countryByCc = new HashMap<>();
 
     @PostConstruct
     void load() {
-        try (InputStream in = new ClassPathResource("countries.json").getInputStream()) {
+        try (InputStream in = new ClassPathResource("regions.json").getInputStream()) {
             JsonNode root = new ObjectMapper().readTree(in);
-            List<Country> list = new ArrayList<>(root.size());
+            List<Region> list = new ArrayList<>(root.size());
             for (JsonNode c : root) {
-                list.add(parse(c));
+                Region r = parse(c);
+                list.add(r);
+                if (!r.cc.isEmpty()) {
+                    countryByCc.putIfAbsent(r.cc, r.country);
+                }
             }
-            countries = list;
-            log.info("Loaded {} country borders for locator resolution", countries.size());
+            regions = list;
+            log.info("Loaded {} admin-1 regions for locator resolution", regions.size());
         } catch (Exception e) {
-            log.warn("Could not load country borders; locator country lookup disabled: {}", e.getMessage());
+            log.warn("Could not load region borders; locator lookup disabled: {}", e.getMessage());
         }
     }
 
-    private static Country parse(JsonNode c) {
+    private static Region parse(JsonNode c) {
         double minLon = Double.MAX_VALUE, minLat = Double.MAX_VALUE;
         double maxLon = -Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
         List<List<float[]>> polygons = new ArrayList<>();
@@ -73,29 +79,34 @@ public class CountryLookup {
             }
             polygons.add(rings);
         }
-        return new Country(c.get("name").asText(), c.get("cc").asText(""),
+        return new Region(c.get("name").asText(""), c.get("admin").asText(""), c.get("cc").asText(""),
                 minLon, minLat, maxLon, maxLat, polygons);
     }
 
-    /** The country containing the point, or {@code null} if none (e.g. open sea). */
-    public Match resolve(double lon, double lat) {
-        for (Country c : countries) {
-            if (lon < c.minLon || lon > c.maxLon || lat < c.minLat || lat > c.maxLat) {
+    /** The place containing the point, or {@code null} if none (e.g. open sea). */
+    public Place resolve(double lon, double lat) {
+        for (Region r : regions) {
+            if (lon < r.minLon || lon > r.maxLon || lat < r.minLat || lat > r.maxLat) {
                 continue;
             }
-            if (contains(c, lon, lat)) {
-                return new Match(c.name, c.cc);
+            if (contains(r, lon, lat)) {
+                return new Place(r.country, r.region, r.cc);
             }
         }
         return null;
     }
 
-    private static boolean contains(Country c, double lon, double lat) {
-        for (List<float[]> polygon : c.polygons) {
+    /** Country name for an ISO alpha-2 code, or empty. */
+    public String countryName(String cc) {
+        return cc == null ? "" : countryByCc.getOrDefault(cc.toUpperCase(), "");
+    }
+
+    private static boolean contains(Region r, double lon, double lat) {
+        for (List<float[]> polygon : r.polygons) {
             boolean in = false;
             for (float[] ring : polygon) {
                 if (rayInside(ring, lon, lat)) {
-                    in = !in; // XOR across rings handles holes (enclaves)
+                    in = !in; // XOR across rings handles holes
                 }
             }
             if (in) {

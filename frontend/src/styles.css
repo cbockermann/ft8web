@@ -441,3 +441,4 @@ section h2 {
 }
 .meta-toggle input { width: auto; }
 .meta { color: var(--muted); }
+.flag { white-space: nowrap; }

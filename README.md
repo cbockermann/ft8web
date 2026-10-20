@@ -122,17 +122,24 @@ reported from (field or square resolution, optional band filter). The data is
 served from `GET /api/stats`. The SQLite file is also available for ad-hoc
 queries and future features.
 
-## Locator / country lookup
+## Locator / callsign lookup
 
-Maidenhead locators resolve to a position and country by point-in-polygon
-against bundled Natural Earth borders (`countries.json`):
+Two offline lookups power the feed annotations and the REST API:
 
-- `GET /api/locator/JO62` → `{ grid, lat, lon, country, cc, flag }`
-- `GET /api/locators?grids=JO62,FN42,...` → a map (used to annotate the feed)
+- **Locator → place** by point-in-polygon against bundled Natural Earth borders
+  (`regions.json`, 10m admin-1), giving country **and finest region**:
+  - `GET /api/locator/JO62` → `{ grid, lat, lon, country, region, cc, flag }`
+  - `GET /api/locators?grids=JO62,FN42,...` → a map (used to annotate the feed)
+- **Callsign → country** by prefix (table derived from DXCC `cty.dat`):
+  - `GET /api/callsign/DL1ABC` → `{ call, cc, country, flag }`
+  - `GET /api/callsigns?calls=DL1ABC,W1AW,...` → a map
 
-In the **feed** and the overview **mini-feed**, a **Meta** checkbox appends the
-decoder's country and flag in parentheses (e.g. `CQ DL1ABC JO31 (🇩🇪 Germany)`) —
-metadata, kept out of the message text, resolved from the message's locator.
+In the **feed** and the overview **mini-feed**, two checkboxes toggle:
+
+- **Flags** — a country flag next to each callsign (from its prefix), e.g.
+  `CQ DL1ABC🇩🇪 JO31`.
+- **Meta** — the locator's country + region in parentheses (kept out of the
+  message text), e.g. `… JO62 (🇩🇪 Germany · Brandenburg)`.
 
 ## Configuration
 
