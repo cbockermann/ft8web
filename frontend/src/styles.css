@@ -534,6 +534,19 @@ section h2 {
 }
 .mqtt-start:disabled { opacity: 0.45; cursor: default; }
 .mqtt-start.on { background: var(--selected); border-color: var(--border); color: var(--text); }
+.mqtt-mine {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.2rem 0.7rem;
+  font-size: 0.8rem;
+  font-family: ui-monospace, Menlo, monospace;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mqtt-mine:hover { border-color: var(--accent); }
+.mqtt-mine.on { background: var(--selected); border-color: var(--accent); }
 .mqtt-status {
   font-size: 0.75rem;
   color: var(--muted);

@@ -2,6 +2,7 @@ package de.bockermann.ft8monitor.pskreporter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.bockermann.ft8monitor.settings.SettingsService;
 import jakarta.annotation.PreDestroy;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
@@ -13,14 +14,17 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,11 +67,22 @@ public class PskMqttService implements MqttCallbackExtended {
     private final Map<SseEmitter, Sub> subscribers = new ConcurrentHashMap<>();
     private final Map<String, Integer> topicRefs = new HashMap<>(); // guarded by lock
 
+    private final SettingsService settings;
+    private final PskReportStore store;
+
+    // Standing subscription to the own callsign (as sender = "being heard"), kept
+    // alive whenever a callsign is configured so its reports are always captured.
+    private volatile String standingCall;
+    private volatile String standingTopic;
+
     private MqttClient client;
 
     public PskMqttService(@Value("${pskreporter.mqtt-host:mqtt.pskreporter.info}") String host,
-                          @Value("${pskreporter.mqtt-port:1883}") int port) {
+                          @Value("${pskreporter.mqtt-port:1883}") int port,
+                          SettingsService settings, PskReportStore store) {
         this.brokerUrl = "tcp://" + host + ":" + port;
+        this.settings = settings;
+        this.store = store;
     }
 
     /** Subscribe to the live reports for a callsign; returns the SSE stream. */
@@ -87,12 +102,8 @@ public class PskMqttService implements MqttCallbackExtended {
 
         try {
             ensureConnected();
-            synchronized (lock) {
-                for (String t : topics) {
-                    if (topicRefs.merge(t, 1, Integer::sum) == 1) {
-                        client.subscribe(t, 0);
-                    }
-                }
+            for (String t : topics) {
+                retainTopic(t);
             }
             subscribers.put(emitter, sub);
             emitter.send(SseEmitter.event().name("subscribed").data(call));
@@ -101,6 +112,32 @@ public class PskMqttService implements MqttCallbackExtended {
             emitter.completeWithError(e);
         }
         return emitter;
+    }
+
+    /** Subscribe to a topic (ref-counted; only the first ref hits the broker). */
+    private void retainTopic(String topic) throws MqttException {
+        synchronized (lock) {
+            if (topicRefs.merge(topic, 1, Integer::sum) == 1) {
+                client.subscribe(topic, 0);
+            }
+        }
+    }
+
+    /** Release a topic ref; unsubscribe from the broker when the last ref drops. */
+    private void releaseTopic(String topic) {
+        synchronized (lock) {
+            Integer n = topicRefs.merge(topic, -1, Integer::sum);
+            if (n != null && n <= 0) {
+                topicRefs.remove(topic);
+                try {
+                    if (client != null && client.isConnected()) {
+                        client.unsubscribe(topic);
+                    }
+                } catch (MqttException e) {
+                    log.debug("Unsubscribe failed for {}: {}", topic, e.getMessage());
+                }
+            }
+        }
     }
 
     static Set<String> topicsFor(String call, Role role) {
@@ -138,21 +175,51 @@ public class PskMqttService implements MqttCallbackExtended {
         if (sub == null) {
             return;
         }
-        synchronized (lock) {
-            for (String t : sub.topics()) {
-                Integer n = topicRefs.merge(t, -1, Integer::sum);
-                if (n != null && n <= 0) {
-                    topicRefs.remove(t);
-                    try {
-                        if (client != null && client.isConnected()) {
-                            client.unsubscribe(t);
-                        }
-                    } catch (MqttException e) {
-                        log.debug("Unsubscribe failed for {}: {}", t, e.getMessage());
-                    }
-                }
-            }
+        for (String t : sub.topics()) {
+            releaseTopic(t);
         }
+    }
+
+    /**
+     * Keep a standing subscription to the configured own callsign (as sender) so
+     * its reports are always captured and persisted, even with no browser open.
+     * Reconciled on a heartbeat; re-points when the callsign changes.
+     */
+    @Scheduled(fixedDelayString = "${pskreporter.mqtt-standing-tick-ms:20000}")
+    void reconcileStanding() {
+        String call = normCall(settings.get().callsign());
+        if (Objects.equals(call, standingCall)) {
+            return;
+        }
+        // Drop the previous standing topic, if any.
+        if (standingTopic != null) {
+            releaseTopic(standingTopic);
+            standingTopic = null;
+        }
+        standingCall = null;
+        if (call == null) {
+            log.info("No own callsign set — standing MQTT subscription cleared");
+            return;
+        }
+        try {
+            ensureConnected();
+            String topic = topicsFor(call, Role.SENDER).iterator().next();
+            retainTopic(topic);
+            standingTopic = topic;
+            standingCall = call;
+            log.info("Standing MQTT subscription for own call {} (receivability)", call);
+        } catch (Exception e) {
+            // Leave standingCall null so the next tick retries.
+            log.warn("Standing MQTT subscription for {} failed, will retry: {}", call, e.getMessage());
+        }
+    }
+
+    private static String normCall(String s) {
+        if (s == null) {
+            return null;
+        }
+        String v = s.trim().toUpperCase();
+        return v.isEmpty() ? null : v;
     }
 
     // --- MqttCallbackExtended ----------------------------------------------
@@ -176,15 +243,32 @@ public class PskMqttService implements MqttCallbackExtended {
     @Override
     public void messageArrived(String topic, MqttMessage message) {
         String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
-        String sc;
-        String rc;
+        JsonNode n;
         try {
-            JsonNode n = mapper.readTree(payload);
-            sc = n.path("sc").asText("").toUpperCase();
-            rc = n.path("rc").asText("").toUpperCase();
+            n = mapper.readTree(payload);
         } catch (Exception e) {
             return;
         }
+        String sc = n.path("sc").asText("").toUpperCase();
+        String rc = n.path("rc").asText("").toUpperCase();
+
+        // Persist reports of our own call being heard (the receivability history).
+        String own = standingCall;
+        if (own != null && own.equals(sc)) {
+            try {
+                store.save(
+                        n.path("t").asLong(Instant.now().getEpochSecond()),
+                        sc, rc,
+                        n.path("rl").asText(""),
+                        n.path("b").asText(""),
+                        n.path("md").asText(""),
+                        n.hasNonNull("rp") ? n.path("rp").asInt() : null,
+                        n.hasNonNull("f") ? n.path("f").asDouble() : null);
+            } catch (Exception e) {
+                log.debug("Failed to store own-call report: {}", e.getMessage());
+            }
+        }
+
         for (Sub sub : subscribers.values()) {
             boolean match = switch (sub.role()) {
                 case SENDER -> sub.call().equals(sc);

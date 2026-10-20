@@ -16,6 +16,7 @@ const barHeight = (db) => {
 };
 
 const MAX_ROWS = 500;
+const OWN_SEED_MINUTES = 720; // how far back to seed the own-station history (12 h)
 
 // Which side of the report the entered callsign sits on.
 const ROLES = [
@@ -83,16 +84,10 @@ export default function ReportsView() {
   const [region, setRegion] = useState(() => loadPref('rp.region', 'world'));
   const [showFlags, setShowFlags] = useMetaToggle('feed.showMeta');
   const [home, setHome] = useState(null);
+  const [ownCall, setOwnCall] = useState(''); // configured station callsign, if any
   const [hover, setHover] = useState(null); // { cell, x, y } for the tooltip
   const esRef = useRef(null);
-
-  // Own-station marker, from the configured locator.
-  useEffect(() => {
-    fetch(settingsUrl)
-      .then((r) => r.json())
-      .then((s) => setHome(locatorCenter(s.locator)))
-      .catch(() => {});
-  }, []);
+  const autoStartedRef = useRef(false);
 
   const stop = () => {
     if (esRef.current) {
@@ -103,15 +98,15 @@ export default function ReportsView() {
     setStatus('idle');
   };
 
-  const start = () => {
-    const c = call.trim().toUpperCase();
+  // Open an SSE stream for a call/role, optionally seeded with stored history.
+  const startWatch = (c, roleKey, seed = []) => {
     if (!c) return;
     stop();
-    setReports([]);
+    setReports(seed);
     setWatching(c);
     setActive(true);
     setStatus('connecting');
-    const url = `${apiBase}/mqtt/reports?call=${encodeURIComponent(c)}&role=${role}`;
+    const url = `${apiBase}/mqtt/reports?call=${encodeURIComponent(c)}&role=${roleKey}`;
     const es = new EventSource(url);
     esRef.current = es;
     es.addEventListener('subscribed', () => setStatus('live'));
@@ -125,6 +120,49 @@ export default function ReportsView() {
     });
     es.onerror = () => setStatus('error');
   };
+
+  const start = () => {
+    const c = call.trim().toUpperCase();
+    if (!c) return;
+    setCall(c);
+    startWatch(c, role, []);
+  };
+
+  // Load the own station's receivability: own call as sender, seeded with the
+  // stored history so the map/list are populated immediately.
+  const loadOwnFor = async (c) => {
+    if (!c) return;
+    setCall(c);
+    setRole('sender');
+    let seed = [];
+    try {
+      const r = await fetch(`${apiBase}/mqtt/stored?call=${encodeURIComponent(c)}&minutes=${OWN_SEED_MINUTES}`);
+      if (r.ok) {
+        const data = await r.json();
+        if (Array.isArray(data)) seed = data;
+      }
+    } catch {
+      /* ignore; fall back to live-only */
+    }
+    startWatch(c, 'sender', seed);
+  };
+
+  // Settings: own-station marker (locator) + callsign; auto-load own receivability.
+  useEffect(() => {
+    fetch(settingsUrl)
+      .then((r) => r.json())
+      .then((s) => {
+        setHome(locatorCenter(s.locator));
+        const oc = (s.callsign || '').trim().toUpperCase();
+        setOwnCall(oc);
+        if (oc && !autoStartedRef.current) {
+          autoStartedRef.current = true;
+          loadOwnFor(oc);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Close the stream on unmount so the backend unsubscribes the topic.
   useEffect(() => () => stop(), []);
@@ -244,6 +282,16 @@ export default function ReportsView() {
         <button type="submit" className={`mqtt-start ${active ? 'on' : ''}`} disabled={!active && !call.trim()}>
           {active ? 'Stop' : 'Watch'}
         </button>
+        {ownCall && (
+          <button
+            type="button"
+            className={`mqtt-mine ${watching === ownCall ? 'on' : ''}`}
+            title={`Your station's receivability — where ${ownCall} is being heard`}
+            onClick={() => loadOwnFor(ownCall)}
+          >
+            ★ {ownCall}
+          </button>
+        )}
         {statusText && <span className={`mqtt-status ${status}`}>{statusText}</span>}
       </form>
 
