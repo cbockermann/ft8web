@@ -88,7 +88,15 @@ function clientToUser(svg, cx, cy) {
  * own-station marker. Wheel to zoom, drag to pan; the region buttons reset the
  * view. Everything shares the 720×360 projection, so it all zooms together.
  */
-export default function WorldMap({ counts, region = 'world', home = null }) {
+export default function WorldMap({
+  counts,
+  region = 'world',
+  home = null,
+  colorFor = null, // optional (cell) => CSS color; overrides the count-based heat fill
+  onCellEnter = null, // optional (cell, event) => void; enables a custom hover tooltip
+  onCellMove = null, // optional (event) => void
+  onCellLeave = null, // optional () => void
+}) {
   const [view, setView] = useState(() => REGIONS[region]?.box ?? WORLD_BOX);
   const viewRef = useRef(view);
   const svgRef = useRef(null);
@@ -170,19 +178,25 @@ export default function WorldMap({ counts, region = 'world', home = null }) {
       <rect x="0" y="0" width={W} height={H} className="map-ocean" />
       <path d={COUNTRIES_PATH} className="map-land" fillRule="evenodd" vectorEffect="non-scaling-stroke" />
 
-      {cells.map((c) => (
-        <rect
-          key={c.cell}
-          x={c.x}
-          y={c.y}
-          width={c.w}
-          height={c.h}
-          className="map-heat"
-          style={{ opacity: c.opacity }}
-        >
-          <title>{`${c.cell}: ${c.count}`}</title>
-        </rect>
-      ))}
+      {cells.map((c) => {
+        const color = colorFor ? colorFor(c.cell) : null;
+        return (
+          <rect
+            key={c.cell}
+            x={c.x}
+            y={c.y}
+            width={c.w}
+            height={c.h}
+            className="map-heat"
+            style={color ? { fill: color, opacity: 0.85 } : { opacity: c.opacity }}
+            onMouseEnter={onCellEnter ? (e) => onCellEnter(c.cell, e) : undefined}
+            onMouseMove={onCellMove ? (e) => onCellMove(e) : undefined}
+            onMouseLeave={onCellLeave || undefined}
+          >
+            {!onCellEnter && <title>{`${c.cell}: ${c.count}`}</title>}
+          </rect>
+        );
+      })}
 
       <path d={GRID_LINES} className="map-grid" vectorEffect="non-scaling-stroke" />
 

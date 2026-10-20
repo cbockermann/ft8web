@@ -65,9 +65,14 @@ pskreporter:
   kafka-group: ${PSKREPORTER_KAFKA_GROUP:pskreporter-${ft8.hostname}} # own consumer group
   software: ${PSKREPORTER_SOFTWARE:ft8web 0.3.0}                      # reported decoder name
   tick-ms: ${PSKREPORTER_TICK_MS:15000}                               # heartbeat/flush check
-  # Public MQTT gateway for the callsign live-report diagnostics (Stats view).
+  # Public MQTT gateway for the callsign live-report diagnostics (Reports view).
   mqtt-host: ${PSKREPORTER_MQTT_HOST:mqtt.pskreporter.info}
   mqtt-port: ${PSKREPORTER_MQTT_PORT:1883}
+  # When a callsign is configured, keep a standing MQTT subscription to its own
+  # reports (where it is heard) and persist them in SQLite for the receivability
+  # view. These knobs are the reconcile heartbeat and how long history is kept.
+  mqtt-standing-tick-ms: ${PSKREPORTER_MQTT_STANDING_TICK_MS:20000}
+  rx-retention-days: ${PSKREPORTER_RX_RETENTION_DAYS:30}
 
 management:
   endpoints:

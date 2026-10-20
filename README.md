@@ -122,14 +122,24 @@ reported from (field or square resolution, optional band filter). The data is
 served from `GET /api/stats`. The SQLite file is also available for ad-hoc
 queries and future features.
 
-### Live report diagnostics (PSKReporter MQTT)
+## Live report diagnostics (PSKReporter MQTT)
 
-At the bottom of the **Stats** view is a diagnostic tool: enter any callsign and
-ft8web subscribes to PSKReporter's public **MQTT** gateway
-(`mqtt.pskreporter.info`) and streams that station's live reports into the page —
-who is hearing it (**Heard**), who it is hearing (**Hearing**), or **Both**. Each
-row shows time, sender → receiver (with optional country flags), band, mode, SNR
-and grids.
+The **Reports** view is a diagnostic tool: enter any callsign and ft8web
+subscribes to PSKReporter's public **MQTT** gateway (`mqtt.pskreporter.info`)
+and streams that station's live reports into the page — who is hearing it
+(**Heard**), who it is hearing (**Hearing**), or **Both**.
+
+The results are shown two ways:
+
+- A **reception map** of the Maidenhead cells (field or square resolution) where
+  the callsign was received — i.e. the locators of the *other* station in each
+  report — so you get an at-a-glance picture of where the call is getting out.
+  Each cell is coloured by the **mean reception level (SNR)** on a sequential
+  warm scale (see the legend); hovering a cell shows its **min / max / avg dB**
+  and a small bar chart of every report's dB in arrival order. Pan/zoom and
+  World/Europe presets, same map as the overview.
+- A **live list** below it: time, sender → receiver (with optional country
+  flags), band, mode, SNR and grids.
 
 The backend keeps one shared MQTT connection and reference-counts the per-call
 topic subscriptions, relaying matching reports to the browser over SSE
@@ -138,6 +148,20 @@ is published. PSKReporter delivers per station in bursts (stations upload every
 few minutes), so a freshly watched call may sit idle a short while before its
 next batch arrives. Broker host/port are configurable (`PSKREPORTER_MQTT_HOST` /
 `PSKREPORTER_MQTT_PORT`).
+
+### Own-station receivability (always on)
+
+When a **callsign is configured** (Config page), ft8web keeps a **standing MQTT
+subscription** to that call's own reports — the spots where other stations heard
+it — regardless of whether anyone has the Reports view open, and **persists**
+each one in SQLite (table `psk_rx_report`, kept `PSKREPORTER_RX_RETENTION_DAYS`
+days, default 30). So the history builds up continuously in the background.
+
+Opening the **Reports** view then defaults to your own station: it loads that
+stored history (`GET /api/mqtt/stored?call=…`) to populate the map and list
+immediately, and keeps streaming live on top — a quick picture of where you are
+currently being received. The **★ <call>** button jumps back to this view after
+you have been watching another station.
 
 ## Locator / callsign lookup
 
@@ -185,6 +209,7 @@ All settings are overridable via environment variables (see
 | `PSKREPORTER_SOFTWARE` | ft8web       | decoder name reported to PSKReporter      |
 | `PSKREPORTER_MQTT_HOST` | mqtt.pskreporter.info | MQTT gateway for the live-report diagnostics |
 | `PSKREPORTER_MQTT_PORT` | 1883         | MQTT gateway port (plain TCP)             |
+| `PSKREPORTER_RX_RETENTION_DAYS` | 30   | how long to keep the own call's stored reports |
 
 PSKReporter's user-facing settings (enable, antenna, host, port, interval) are
 edited on the **Config page**, not via env vars — they live in the settings file
