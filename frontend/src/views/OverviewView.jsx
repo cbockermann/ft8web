@@ -5,7 +5,9 @@ import { useFeed } from '../feed/FeedProvider.jsx';
 import { fmtTime } from '../lib/format.js';
 import { locatorCenter } from '../lib/maidenhead.js';
 import { useCallsignFilter } from '../lib/callsignFilter.js';
+import { useLocatorMeta, useMetaToggle } from '../lib/locatorMeta.js';
 import FilterInput from '../components/FilterInput.jsx';
+import MetaSpan from '../components/MetaSpan.jsx';
 import { settingsUrl } from '../api.js';
 
 const WINDOW_OPTIONS = [5, 10, 15, 30, 60]; // minutes; capped server-side
@@ -54,7 +56,9 @@ export default function OverviewView() {
   const counts = useCellHeat(minutes, resolution);
   const { decodes } = useFeed();
   const filter = useCallsignFilter('ov.feedFilter');
+  const [showMeta, setShowMeta] = useMetaToggle();
   const shownDecodes = decodes.filter((d) => filter.matches(d.msg)).slice(0, MINI_FEED);
+  const metaFor = useLocatorMeta(shownDecodes, showMeta);
 
   // Own station marker + default grid resolution from the server settings.
   useEffect(() => {
@@ -176,7 +180,13 @@ export default function OverviewView() {
       <section className="mini-feed">
         <div className="feed-head">
           <h2>Recent decodes</h2>
-          <FilterInput value={filter.value} onChange={filter.setValue} />
+          <div className="feed-tools">
+            <label className="meta-toggle" title="Show country from the locator (meta)">
+              <input type="checkbox" checked={showMeta} onChange={(e) => setShowMeta(e.target.checked)} />
+              Meta
+            </label>
+            <FilterInput value={filter.value} onChange={filter.setValue} />
+          </div>
         </div>
         <ul className="rows">
           {decodes.length === 0 && <li className="empty">Waiting for decodes…</li>}
@@ -188,7 +198,10 @@ export default function OverviewView() {
               <span className="col time">{fmtTime(d)}</span>
               <span className="col snr">{d.snr ?? ''}</span>
               {d.tags && d.tags.band && <span className="col band">{d.tags.band}</span>}
-              <span className="col msg">{d.msg}</span>
+              <span className="col msg">
+                {d.msg}
+                <MetaSpan meta={metaFor(d.msg)} />
+              </span>
             </li>
           ))}
         </ul>

@@ -52,4 +52,31 @@ public final class Maidenhead {
     public static String fieldOfSquare(String square) {
         return square.substring(0, 2);
     }
+
+    /**
+     * Center of a 4- or 6-character Maidenhead locator as {@code [lat, lon]}, or
+     * {@code null} if the locator is malformed.
+     */
+    public static double[] center(String grid) {
+        if (grid == null) {
+            return null;
+        }
+        String s = grid.trim().toUpperCase();
+        if (!LOCATOR.matcher(s).matches()) {
+            return null;
+        }
+        double lon = (s.charAt(0) - 'A') * 20 - 180;
+        double lat = (s.charAt(1) - 'A') * 10 - 90;
+        lon += (s.charAt(2) - '0') * 2;
+        lat += (s.charAt(3) - '0');
+        if (s.length() >= 6) {
+            lon += (s.charAt(4) - 'A') * (5.0 / 60) + (5.0 / 60) / 2;   // subsquare: 5' lon
+            lat += (s.charAt(5) - 'A') * (2.5 / 60) + (2.5 / 60) / 2;   // 2.5' lat
+        } else {
+            lon += 1;   // center of the 2° square
+            lat += 0.5; // center of the 1° square
+        }
+        return new double[]{lat, lon};
+    }
 }
+
