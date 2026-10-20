@@ -391,3 +391,39 @@ section h2 {
   height: 420px;
 }
 .stats-map .map-controls { justify-content: space-between; }
+
+/* --- Callsign filter (feed + mini-feed) --- */
+.feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.feed-head h2 { margin: 0; }
+.filter { position: relative; display: flex; align-items: center; }
+.filter-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.2rem 1.4rem 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  font-family: ui-monospace, Menlo, monospace;
+  width: 240px;
+  max-width: 48vw;
+}
+.filter-input::placeholder { color: var(--muted); }
+.filter-input:focus { outline: none; border-color: var(--accent); }
+.filter-clear {
+  position: absolute;
+  right: 0.35rem;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0;
+}
+.filter-clear:hover { color: var(--text); }

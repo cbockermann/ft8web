@@ -4,6 +4,8 @@ import { useCellHeat } from '../overview/useCellHeat.js';
 import { useFeed } from '../feed/FeedProvider.jsx';
 import { fmtTime } from '../lib/format.js';
 import { locatorCenter } from '../lib/maidenhead.js';
+import { useCallsignFilter } from '../lib/callsignFilter.js';
+import FilterInput from '../components/FilterInput.jsx';
 import { settingsUrl } from '../api.js';
 
 const WINDOW_OPTIONS = [5, 10, 15, 30, 60]; // minutes; capped server-side
@@ -51,6 +53,8 @@ export default function OverviewView() {
 
   const counts = useCellHeat(minutes, resolution);
   const { decodes } = useFeed();
+  const filter = useCallsignFilter('ov.feedFilter');
+  const shownDecodes = decodes.filter((d) => filter.matches(d.msg)).slice(0, MINI_FEED);
 
   // Own station marker + default grid resolution from the server settings.
   useEffect(() => {
@@ -170,10 +174,16 @@ export default function OverviewView() {
       />
 
       <section className="mini-feed">
-        <h2>Recent decodes</h2>
+        <div className="feed-head">
+          <h2>Recent decodes</h2>
+          <FilterInput value={filter.value} onChange={filter.setValue} />
+        </div>
         <ul className="rows">
           {decodes.length === 0 && <li className="empty">Waiting for decodes…</li>}
-          {decodes.slice(0, MINI_FEED).map((d) => (
+          {decodes.length > 0 && shownDecodes.length === 0 && (
+            <li className="empty">No decodes match the filter.</li>
+          )}
+          {shownDecodes.map((d) => (
             <li key={d.id} className="row">
               <span className="col time">{fmtTime(d)}</span>
               <span className="col snr">{d.snr ?? ''}</span>
