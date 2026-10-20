@@ -122,6 +122,18 @@ reported from (field or square resolution, optional band filter). The data is
 served from `GET /api/stats`. The SQLite file is also available for ad-hoc
 queries and future features.
 
+## Locator / country lookup
+
+Maidenhead locators resolve to a position and country by point-in-polygon
+against bundled Natural Earth borders (`countries.json`):
+
+- `GET /api/locator/JO62` → `{ grid, lat, lon, country, cc, flag }`
+- `GET /api/locators?grids=JO62,FN42,...` → a map (used to annotate the feed)
+
+In the **feed** and the overview **mini-feed**, a **Meta** checkbox appends the
+decoder's country and flag in parentheses (e.g. `CQ DL1ABC JO31 (🇩🇪 Germany)`) —
+metadata, kept out of the message text, resolved from the message's locator.
+
 ## Configuration
 
 All settings are overridable via environment variables (see

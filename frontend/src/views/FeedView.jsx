@@ -3,16 +3,21 @@ import { useFeed } from '../feed/FeedProvider.jsx';
 import { qslUrl } from '../api.js';
 import { fmtTime } from '../lib/format.js';
 import { useCallsignFilter } from '../lib/callsignFilter.js';
+import { useLocatorMeta, useMetaToggle } from '../lib/locatorMeta.js';
 import FilterInput from '../components/FilterInput.jsx';
+import MetaSpan from '../components/MetaSpan.jsx';
 
-function DecodeRow({ d, selected, onClick }) {
+function DecodeRow({ d, selected, meta, onClick }) {
   const band = d.tags && d.tags.band;
   return (
     <li className={selected ? 'row selected' : 'row'} onClick={onClick}>
       <span className="col time">{fmtTime(d)}</span>
       <span className="col snr">{d.snr ?? ''}</span>
       {band && <span className="col band">{band}</span>}
-      <span className="col msg">{d.msg}</span>
+      <span className="col msg">
+        {d.msg}
+        <MetaSpan meta={meta} />
+      </span>
     </li>
   );
 }
@@ -20,6 +25,8 @@ function DecodeRow({ d, selected, onClick }) {
 export default function FeedView() {
   const { decodes } = useFeed();
   const filter = useCallsignFilter('feed.filter');
+  const [showMeta, setShowMeta] = useMetaToggle();
+  const metaFor = useLocatorMeta(decodes, showMeta);
   const [selectedId, setSelectedId] = useState(null);
   const [qsl, setQsl] = useState(null);
   const [qslError, setQslError] = useState(null);
@@ -44,7 +51,13 @@ export default function FeedView() {
       <section className="feed">
         <div className="feed-head">
           <h2>Live decodes</h2>
-          <FilterInput value={filter.value} onChange={filter.setValue} />
+          <div className="feed-tools">
+            <label className="meta-toggle" title="Show country from the locator (meta)">
+              <input type="checkbox" checked={showMeta} onChange={(e) => setShowMeta(e.target.checked)} />
+              Meta
+            </label>
+            <FilterInput value={filter.value} onChange={filter.setValue} />
+          </div>
         </div>
         <ul className="rows">
           {decodes.length === 0 && <li className="empty">Waiting for decodes…</li>}
@@ -56,6 +69,7 @@ export default function FeedView() {
               key={d.id}
               d={d}
               selected={d.id === selectedId}
+              meta={metaFor(d.msg)}
               onClick={() => selectDecode(d)}
             />
           ))}

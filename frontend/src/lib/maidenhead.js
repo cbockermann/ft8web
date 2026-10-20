@@ -13,6 +13,15 @@ export function fieldOf(msg) {
   return null;
 }
 
+/** The 4-char square (e.g. "JO62") of the first locator in a message, or null. */
+export function gridOf(msg) {
+  if (!msg) return null;
+  for (const token of msg.trim().split(/\s+/)) {
+    if (!SIGNOFFS.has(token) && LOCATOR.test(token)) return token.slice(0, 4);
+  }
+  return null;
+}
+
 /**
  * Rectangle of a Maidenhead cell on an equirectangular canvas `width`×`height`.
  * Accepts a 2-char field (20°×10°) or a 4-char square (2°×1°) and returns

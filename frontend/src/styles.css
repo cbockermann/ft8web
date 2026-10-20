@@ -427,3 +427,17 @@ section h2 {
   padding: 0;
 }
 .filter-clear:hover { color: var(--text); }
+
+/* Feed tools (meta toggle + filter) and the locator meta annotation. */
+.feed-tools { display: flex; align-items: center; gap: 0.6rem; }
+.meta-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.meta-toggle input { width: auto; }
+.meta { color: var(--muted); }
