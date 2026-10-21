@@ -1,5 +1,6 @@
 package de.bockermann.ft8monitor.web;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -8,8 +9,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * Live decode feed via Server-Sent Events. The browser subscribes with
- * {@code new EventSource('/api/stream')} and receives one {@code decode} event
- * per incoming FT8 decode.
+ * {@code new EventSource('<ctx>/api/stream')} and receives one {@code decode}
+ * event per incoming FT8 decode.
  */
 @RestController
 @RequestMapping("/api")
@@ -22,7 +23,8 @@ public class StreamController {
     }
 
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream() {
+    public SseEmitter stream(HttpServletResponse response) {
+        SseSupport.prepare(response);
         return broadcaster.subscribe();
     }
 }

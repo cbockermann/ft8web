@@ -2,6 +2,7 @@ package de.bockermann.ft8monitor.web;
 
 import de.bockermann.ft8monitor.pskreporter.PskMqttService;
 import de.bockermann.ft8monitor.pskreporter.PskReportStore;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,7 +35,9 @@ public class MqttReportController {
 
     @GetMapping(path = "/reports", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter reports(@RequestParam String call,
-                              @RequestParam(defaultValue = "both") String role) {
+                              @RequestParam(defaultValue = "both") String role,
+                              HttpServletResponse response) {
+        SseSupport.prepare(response);
         return mqtt.subscribe(call, role);
     }
 
