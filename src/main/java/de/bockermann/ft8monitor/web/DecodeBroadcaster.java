@@ -3,6 +3,7 @@ package de.bockermann.ft8monitor.web;
 import de.bockermann.ft8monitor.model.Decode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -51,5 +52,23 @@ public class DecodeBroadcaster {
 
     public int subscriberCount() {
         return emitters.size();
+    }
+
+    /**
+     * Periodic comment line to keep idle connections alive. FT8 traffic can be
+     * quiet for minutes, and a reverse proxy (e.g. nginx {@code proxy_read_timeout},
+     * default 60 s) would otherwise close the idle SSE stream and the browser would
+     * show "disconnected". EventSource ignores comment lines, so this is invisible
+     * to clients but resets the proxy's idle timer.
+     */
+    @Scheduled(fixedRateString = "${ft8.sse-heartbeat-ms:15000}")
+    public void heartbeat() {
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(SseEmitter.event().comment("hb"));
+            } catch (IOException | IllegalStateException e) {
+                emitters.remove(emitter);
+            }
+        }
     }
 }

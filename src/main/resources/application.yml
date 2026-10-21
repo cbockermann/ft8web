@@ -44,6 +44,9 @@ ft8:
   backfill-minutes: ${FT8_BACKFILL_MINUTES:15}
   # How long to keep PSKReporter report statistics in SQLite (days).
   stats-retention-days: ${FT8_STATS_RETENTION_DAYS:365}
+  # SSE keep-alive: send a comment line this often so idle live streams survive a
+  # reverse proxy's read timeout (nginx default 60s). 0 < value ≤ proxy timeout.
+  sse-heartbeat-ms: ${FT8_SSE_HEARTBEAT_MS:15000}
 
   # Web-editable station settings (callsign, locator) are persisted here.
   config-file: ${FT8_CONFIG_FILE:ft8web.properties}

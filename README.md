@@ -200,6 +200,7 @@ All settings are overridable via environment variables (see
 | `FT8_BACKFILL_MINUTES` | 15           | default startup replay minutes (0 = off); editable on the Config page |
 | `FT8_STATS_FILE`     | ft8web-stats.db | SQLite file for report statistics       |
 | `FT8_STATS_RETENTION_DAYS` | 365      | how long to keep report statistics        |
+| `FT8_SSE_HEARTBEAT_MS` | 15000        | keep-alive interval for the live SSE streams |
 | `FT8_BRIDGE_ENABLED` | false          | run the bundled UDP→Kafka bridge          |
 | `FT8_BRIDGE_BIND`    | 0.0.0.0        | bridge: interface to listen on            |
 | `FT8_BRIDGE_PORT`    | 5001           | bridge: UDP port (ft8mon `-json` target)  |
@@ -214,6 +215,23 @@ All settings are overridable via environment variables (see
 PSKReporter's user-facing settings (enable, antenna, host, port, interval) are
 edited on the **Config page**, not via env vars — they live in the settings file
 with callsign/locator.
+
+### Behind a reverse proxy
+
+The frontend honours `SERVER_SERVLET_CONTEXT_PATH`: the backend injects the
+context path into the page, so all API and **SSE** URLs are built relative to it.
+
+The live feed and the live reports use **Server-Sent Events** (long-lived
+streaming connections). A proxy in front of ft8web must not break them, or the
+header shows "disconnected":
+
+- **Don't buffer** the response. ft8web already sends `X-Accel-Buffering: no` and
+  `Cache-Control: no-transform`; for nginx also set `proxy_buffering off;` on the
+  `/api/` location. The app heartbeats every `FT8_SSE_HEARTBEAT_MS` (15 s) to keep
+  idle streams open, but the proxy's own read timeout must exceed that
+  (nginx: `proxy_read_timeout 300s;`).
+- **Use HTTP/1.1** upstream (`proxy_http_version 1.1;` and clear the `Connection`
+  header) so the stream is chunked, not buffered.
 
 ## Testing without the real pipeline
 

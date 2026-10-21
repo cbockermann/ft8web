@@ -222,6 +222,22 @@ public class PskMqttService implements MqttCallbackExtended {
         return v.isEmpty() ? null : v;
     }
 
+    /**
+     * Keep the per-browser report streams alive. PSKReporter delivers in bursts
+     * (minutes apart), so without a heartbeat a reverse proxy's idle timeout would
+     * close the SSE stream between bursts. EventSource ignores comment lines.
+     */
+    @Scheduled(fixedRateString = "${ft8.sse-heartbeat-ms:15000}")
+    void heartbeat() {
+        for (SseEmitter emitter : subscribers.keySet()) {
+            try {
+                emitter.send(SseEmitter.event().comment("hb"));
+            } catch (IOException | IllegalStateException e) {
+                remove(emitter);
+            }
+        }
+    }
+
     // --- MqttCallbackExtended ----------------------------------------------
 
     @Override
