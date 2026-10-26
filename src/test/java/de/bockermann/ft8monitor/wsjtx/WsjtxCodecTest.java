@@ -79,8 +79,10 @@ class WsjtxCodecTest {
         assertEquals(0.2, d.dt(), 1e-9);
         assertEquals(1500, d.dfHz());
         assertEquals("CQ DL1ABC JO31", d.message());
-        // And the Control DTO flags it as a CQ.
-        assertTrue(ControlDecode.of("x", d).cq());
+        // And the Control DTO flags it as a CQ and tags the band from the dial freq.
+        ControlDecode cd = ControlDecode.of("x", d, 14_074_000L);
+        assertTrue(cd.cq());
+        assertEquals("20m", cd.band());
     }
 
     @Test

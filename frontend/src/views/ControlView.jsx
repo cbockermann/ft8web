@@ -1,16 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  controlStreamUrl,
-  controlStatusUrl,
-  controlReplyUrl,
-  controlHaltUrl,
-  controlFrequencyUrl,
-  settingsUrl,
-} from '../api.js';
+import { useEffect, useMemo, useState } from 'react';
+import { controlReplyUrl, controlHaltUrl, controlFrequencyUrl, settingsUrl } from '../api.js';
 import MessageText from '../components/MessageText.jsx';
+import { useControl } from '../control/ControlProvider.jsx';
 import { useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
-
-const MAX_DECODES = 300;
 
 function fmtFreq(hz) {
   return hz ? `${(hz / 1e6).toFixed(3)} MHz` : '—';
@@ -20,52 +12,27 @@ function fmtFreq(hz) {
  * FT8 Control (MVP): drives a locally running WSJT-X over its UDP protocol via
  * the backend. Shows live WSJT-X status + decodes and lets the operator answer a
  * CQ (WSJT-X then auto-sequences the QSO) or halt transmit. Read + reply only —
- * no auto-CQ yet (that comes with the own ft8_lib daemon).
+ * no auto-CQ yet (that comes with the own ft8_lib daemon). Status + decodes come
+ * from the app-wide ControlProvider, so they persist across view switches.
  */
 export default function ControlView() {
-  const [status, setStatus] = useState({ up: false });
-  const [decodes, setDecodes] = useState([]);
+  const { status, decodes } = useControl();
   const [onlyCq, setOnlyCq] = useState(false);
   const [showFlags, setShowFlags] = useMetaToggle('feed.showMeta');
   const [note, setNote] = useState('');
   const [pendingId, setPendingId] = useState('');
   const [bands, setBands] = useState([]);
-  const esRef = useRef(null);
 
   useEffect(() => {
     let active = true;
-    fetch(controlStatusUrl)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((s) => active && s && setStatus(s))
-      .catch(() => {});
-
     fetch(settingsUrl)
       .then((r) => (r.ok ? r.json() : null))
       .then((s) => {
         if (active && s && Array.isArray(s.bands)) setBands(s.bands.filter((b) => b.enabled));
       })
       .catch(() => {});
-
-    const es = new EventSource(controlStreamUrl);
-    esRef.current = es;
-    es.addEventListener('status', (ev) => {
-      try {
-        setStatus(JSON.parse(ev.data));
-      } catch {
-        /* ignore */
-      }
-    });
-    es.addEventListener('decode', (ev) => {
-      try {
-        const d = JSON.parse(ev.data);
-        setDecodes((prev) => [d, ...prev].slice(0, MAX_DECODES));
-      } catch {
-        /* ignore */
-      }
-    });
     return () => {
       active = false;
-      es.close();
     };
   }, []);
 
@@ -183,6 +150,7 @@ export default function ControlView() {
         {shown.map((d, i) => (
           <li className={`ctl-row ${d.cq ? 'cq' : ''}`} key={`${d.id}-${i}`}>
             <span className="ctl-time">{d.at}</span>
+            <span className="ctl-band">{d.band || ''}</span>
             <span className="ctl-snr">{d.snr > 0 ? `+${d.snr}` : d.snr}</span>
             <span className="ctl-dt">{d.dt?.toFixed(1)}</span>
             <span className="ctl-df">{d.df}</span>

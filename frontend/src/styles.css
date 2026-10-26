@@ -673,11 +673,17 @@ section h2 {
 .ctl-qso-empty { color: var(--muted); font-size: 0.85rem; }
 .ctl-row {
   display: grid;
-  grid-template-columns: 4.5rem 2.5rem 2.5rem 3.5rem 1fr auto;
+  grid-template-columns: 4.5rem 2.8rem 2.5rem 2.5rem 3.5rem 1fr auto;
   align-items: center;
   gap: 0.5rem;
   padding: 0.18rem 0.3rem;
   border-bottom: 1px solid var(--border);
+}
+.ctl-band {
+  color: var(--muted);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.75rem;
+  text-align: right;
 }
 .ctl-row.cq { background: #19242f; }
 .ctl-time { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; }

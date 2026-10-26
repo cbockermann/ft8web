@@ -132,7 +132,8 @@ public class WsjtxBackend {
                 synchronized (recent) {
                     recent.put(id, d);
                 }
-                broadcaster.sendDecode(ControlDecode.of(id, d));
+                // Tag with the band from the dial frequency current at decode time.
+                broadcaster.sendDecode(ControlDecode.of(id, d, latest.dialHz()));
             }
             case WsjtxCodec.LoggedAdif a -> log.info("WSJT-X logged QSO (ADIF): {}", a.adif());
             case WsjtxCodec.Closed ignored -> {
