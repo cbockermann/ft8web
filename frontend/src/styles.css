@@ -597,8 +597,14 @@ section h2 {
   flex-direction: column;
   gap: 0.6rem;
   padding: 0.75rem 1rem;
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden; /* status/tools stay put; the decode list scrolls on its own */
   background: var(--panel);
+}
+.control > .ctl-status,
+.control > .ctl-tools {
+  flex: 0 0 auto;
 }
 .ctl-status {
   display: flex;
@@ -638,8 +644,33 @@ section h2 {
 .ctl-tools { display: flex; align-items: center; gap: 0.9rem; }
 .ctl-note { color: var(--accent); font-size: 0.8rem; }
 
-.ctl-decodes { list-style: none; margin: 0; padding: 0; font-size: 0.85rem; }
+.ctl-decodes {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.2rem 0 0;
+  font-size: 0.85rem;
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow-y: auto; /* decodes scroll within ~half the height */
+}
 .ctl-empty { color: var(--muted); padding: 0.5rem 0; }
+
+/* Lower half: the CQ / response sequence (placeholder for now). */
+.ctl-qso {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+.ctl-qso h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+}
+.ctl-qso-empty { color: var(--muted); font-size: 0.85rem; }
 .ctl-row {
   display: grid;
   grid-template-columns: 4.5rem 2.5rem 2.5rem 3.5rem 1fr auto;

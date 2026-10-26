@@ -201,6 +201,13 @@ export default function ControlView() {
           </li>
         ))}
       </ul>
+
+      <section className="ctl-qso">
+        <h3>QSO</h3>
+        <p className="ctl-qso-empty">
+          The CQ / response sequence will appear here — pick a station above to start.
+        </p>
+      </section>
     </main>
   );
 }
