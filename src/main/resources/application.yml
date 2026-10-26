@@ -48,6 +48,16 @@ ft8:
   # Web-editable station settings (callsign, locator) are persisted here.
   config-file: ${FT8_CONFIG_FILE:ft8web.properties}
 
+  # WSJT-X transmit backend (MVP for FT8 TX control). ft8web listens for the
+  # WSJT-X UDP Message Protocol and can trigger replies / halt. Point WSJT-X's
+  # "UDP Server" (Settings → Reporting) at this host:port and enable
+  # "Accept UDP requests". Only one UDP consumer can bind the port at a time.
+  wsjtx:
+    enabled: ${FT8_WSJTX_ENABLED:true}
+    bind: ${FT8_WSJTX_BIND:0.0.0.0}
+    port: ${FT8_WSJTX_PORT:2237}
+    watchdog-ms: ${FT8_WSJTX_WATCHDOG_MS:10000}
+
   # Bundled UDP→Kafka bridge: replaces ft8mon's scripts/udp_kafka_bridge.py.
   # Off by default; enable it on the host that receives ft8mon's -json output
   # (ft8mon ... -json <this-host>:5001). Data still flows UDP → Kafka → consumer.

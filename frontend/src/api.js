@@ -16,3 +16,15 @@ export function qslUrl(decodeId) {
 export function recentUrl(limit) {
   return `${apiBase}/recent?limit=${limit}`;
 }
+
+// WSJT-X control (MVP TX backend)
+export const controlStreamUrl = `${apiBase}/control/stream`;
+export const controlStatusUrl = `${apiBase}/control/status`;
+
+export function controlReplyUrl(id) {
+  return `${apiBase}/control/reply?id=${encodeURIComponent(id)}`;
+}
+
+export function controlHaltUrl(auto = false) {
+  return `${apiBase}/control/halt?auto=${auto ? 'true' : 'false'}`;
+}
