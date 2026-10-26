@@ -40,12 +40,14 @@ public class SettingsService {
     private static final String KEY_PSK_INTERVAL = "psk.interval-seconds";
 
     private static final String KEY_BANDS = "bands";
+    /** Hamlib mode for FT8 on an IC-7300 (Data-U). */
+    private static final String DEFAULT_MODE = "PKTUSB";
     /** Standard FT8 dial frequencies for the bands the operator asked for. */
     private static final List<Settings.Band> DEFAULT_BANDS = List.of(
-            new Settings.Band("80m", 3_573_000L, true),
-            new Settings.Band("40m", 7_074_000L, true),
-            new Settings.Band("20m", 14_074_000L, true),
-            new Settings.Band("10m", 28_074_000L, true));
+            new Settings.Band("80m", 3_573_000L, true, DEFAULT_MODE),
+            new Settings.Band("40m", 7_074_000L, true, DEFAULT_MODE),
+            new Settings.Band("20m", 14_074_000L, true, DEFAULT_MODE),
+            new Settings.Band("10m", 28_074_000L, true, DEFAULT_MODE));
 
     private static final String DEFAULT_PSK_HOST = "report.pskreporter.info";
     private static final int DEFAULT_PSK_PORT = 4739;
@@ -131,7 +133,7 @@ public class SettingsService {
         for (Settings.Band b : bands) {
             String name = b.name() == null ? "" : b.name().trim().replaceAll("[,:]", "");
             if (!name.isEmpty() && b.freqHz() > 0) {
-                out.add(new Settings.Band(name, b.freqHz(), b.enabled()));
+                out.add(new Settings.Band(name, b.freqHz(), b.enabled(), mode(b.mode())));
             }
         }
         return out.isEmpty() ? DEFAULT_BANDS : out;
@@ -144,15 +146,16 @@ public class SettingsService {
         List<Settings.Band> out = new ArrayList<>();
         for (String part : raw.split(",")) {
             String[] f = part.split(":");
-            if (f.length != 3) {
+            if (f.length < 3) {
                 continue;
             }
             try {
                 String name = f[0].trim();
                 long hz = Long.parseLong(f[1].trim());
                 boolean enabled = Boolean.parseBoolean(f[2].trim());
+                String mode = f.length >= 4 ? mode(f[3]) : DEFAULT_MODE; // legacy rows had no mode
                 if (!name.isEmpty() && hz > 0) {
-                    out.add(new Settings.Band(name, hz, enabled));
+                    out.add(new Settings.Band(name, hz, enabled, mode));
                 }
             } catch (NumberFormatException ignored) {
                 // skip malformed entry
@@ -167,9 +170,15 @@ public class SettingsService {
             if (sb.length() > 0) {
                 sb.append(',');
             }
-            sb.append(b.name()).append(':').append(b.freqHz()).append(':').append(b.enabled());
+            sb.append(b.name()).append(':').append(b.freqHz()).append(':').append(b.enabled())
+                    .append(':').append(mode(b.mode()));
         }
         return sb.toString();
+    }
+
+    private static String mode(String m) {
+        String v = m == null ? "" : m.trim().replaceAll("[,:]", "");
+        return v.isEmpty() ? DEFAULT_MODE : v;
     }
 
     private static int parseInt(String s, int fallback) {

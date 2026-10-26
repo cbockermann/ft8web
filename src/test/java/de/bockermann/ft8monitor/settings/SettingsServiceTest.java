@@ -97,12 +97,28 @@ class SettingsServiceTest {
     void persistsCustomBandsAcrossReload(@TempDir Path dir) {
         SettingsService svc = service(dir);
         svc.update(new Settings("", "", "square", 15, new Psk(false, "", "", 4739, 300),
-                List.of(new Band("60m", 5_357_000L, true), new Band("30m", 10_136_000L, false))));
+                List.of(new Band("60m", 5_357_000L, true, "PKTUSB"),
+                        new Band("30m", 10_136_000L, false, "USB"))));
         List<Band> bands = service(dir).get().bands(); // re-read from the file
         assertEquals(2, bands.size());
         assertEquals("60m", bands.get(0).name());
+        assertEquals("PKTUSB", bands.get(0).mode());
         assertEquals(10_136_000L, bands.get(1).freqHz());
+        assertEquals("USB", bands.get(1).mode());
         assertFalse(bands.get(1).enabled());
+    }
+
+    @Test
+    void blankBandModeDefaultsToPktusb(@TempDir Path dir) {
+        SettingsService svc = service(dir);
+        svc.update(new Settings("", "", "square", 15, new Psk(false, "", "", 4739, 300),
+                List.of(new Band("20m", 14_074_000L, true, null))));
+        assertEquals("PKTUSB", svc.get().bands().get(0).mode());
+    }
+
+    @Test
+    void defaultBandsCarryPktusbMode(@TempDir Path dir) {
+        assertTrue(service(dir).get().bands().stream().allMatch(b -> "PKTUSB".equals(b.mode())));
     }
 
     @Test

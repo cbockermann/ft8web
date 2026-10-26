@@ -29,6 +29,7 @@ export function controlHaltUrl(auto = false) {
   return `${apiBase}/control/halt?auto=${auto ? 'true' : 'false'}`;
 }
 
-export function controlFrequencyUrl(hz) {
-  return `${apiBase}/control/frequency?hz=${hz}`;
+export function controlFrequencyUrl(hz, mode) {
+  const m = mode ? `&mode=${encodeURIComponent(mode)}` : '';
+  return `${apiBase}/control/frequency?hz=${hz}${m}`;
 }

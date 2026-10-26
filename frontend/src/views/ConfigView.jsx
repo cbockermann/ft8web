@@ -9,11 +9,14 @@ const DEFAULT_PSK = {
   intervalSeconds: 300,
 };
 
+// Hamlib mode names relevant for FT8. PKTUSB (Data-U) is the usual choice.
+const MODES = ['PKTUSB', 'USB', 'PKTLSB', 'LSB'];
+
 const DEFAULT_BANDS = [
-  { name: '80m', freqHz: 3573000, enabled: true },
-  { name: '40m', freqHz: 7074000, enabled: true },
-  { name: '20m', freqHz: 14074000, enabled: true },
-  { name: '10m', freqHz: 28074000, enabled: true },
+  { name: '80m', freqHz: 3573000, enabled: true, mode: 'PKTUSB' },
+  { name: '40m', freqHz: 7074000, enabled: true, mode: 'PKTUSB' },
+  { name: '20m', freqHz: 14074000, enabled: true, mode: 'PKTUSB' },
+  { name: '10m', freqHz: 28074000, enabled: true, mode: 'PKTUSB' },
 ];
 
 const DEFAULTS = {
@@ -72,7 +75,7 @@ export default function ConfigView() {
   const setBand = (i, key, value) =>
     setForm((f) => ({ ...f, bands: f.bands.map((b, j) => (j === i ? { ...b, [key]: value } : b)) }));
   const addBand = () =>
-    setForm((f) => ({ ...f, bands: [...f.bands, { name: '', freqHz: 0, enabled: true }] }));
+    setForm((f) => ({ ...f, bands: [...f.bands, { name: '', freqHz: 0, enabled: true, mode: 'PKTUSB' }] }));
   const removeBand = (i) =>
     setForm((f) => ({ ...f, bands: f.bands.filter((_, j) => j !== i) }));
 
@@ -197,6 +200,7 @@ export default function ConfigView() {
             <div className="band-row band-head">
               <span>Name</span>
               <span>Dial freq (MHz)</span>
+              <span>Mode</span>
               <span>Shown</span>
               <span />
             </div>
@@ -216,6 +220,14 @@ export default function ConfigView() {
                   onChange={(e) => setBand(i, 'freqHz', Math.round(Number(e.target.value) * 1e6))}
                   placeholder="e.g. 14.074"
                 />
+                <select value={b.mode || 'PKTUSB'} onChange={(e) => setBand(i, 'mode', e.target.value)}>
+                  {MODES.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                  {b.mode && !MODES.includes(b.mode) && <option value={b.mode}>{b.mode}</option>}
+                </select>
                 <input
                   type="checkbox"
                   checked={b.enabled}

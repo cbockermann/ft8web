@@ -24,9 +24,11 @@ public record Settings(String callsign, String locator, String gridResolution,
 
     /**
      * A selectable band: a display {@code name} (e.g. "20m"), its FT8 dial
-     * frequency in Hz, and whether it is offered in the band picker.
+     * frequency in Hz, whether it is offered in the band picker, and the rig
+     * {@code mode} to set with it (Hamlib name, e.g. {@code PKTUSB} = Data-U for
+     * FT8).
      */
-    public record Band(String name, long freqHz, boolean enabled) {
+    public record Band(String name, long freqHz, boolean enabled, String mode) {
     }
 
     /**

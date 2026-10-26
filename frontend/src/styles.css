@@ -670,10 +670,11 @@ section h2 {
 .band-editor { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.5rem 0 0.3rem; }
 .band-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 4rem 2rem;
+  grid-template-columns: 1fr 1fr 7.5rem 4rem 2rem;
   gap: 0.5rem;
   align-items: center;
 }
+.band-row select { width: 100%; }
 .band-head { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
 .band-row input { width: 100%; }
 .band-row input[type="checkbox"] { width: auto; justify-self: center; }

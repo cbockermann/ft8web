@@ -99,9 +99,10 @@ export default function ControlView() {
 
   const tune = async (b) => {
     try {
-      const r = await fetch(controlFrequencyUrl(b.freqHz), { method: 'POST' });
+      const r = await fetch(controlFrequencyUrl(b.freqHz, b.mode), { method: 'POST' });
       const body = await r.json().catch(() => ({}));
-      flash(body.ok ? `Tuned ${b.name} · ${(b.freqHz / 1e6).toFixed(3)} MHz` : body.message || 'Retune failed');
+      const label = `${b.name} · ${(b.freqHz / 1e6).toFixed(3)} MHz${b.mode ? ` · ${b.mode}` : ''}`;
+      flash(body.ok ? `Tuned ${label}` : body.message || 'Retune failed');
     } catch {
       flash('Retune failed — backend unreachable');
     }

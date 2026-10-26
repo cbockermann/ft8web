@@ -42,8 +42,17 @@ public class RigControl {
         return enabled;
     }
 
-    /** Set the dial frequency (Hz) via rigctld's {@code F} command. */
+    /** Set the dial frequency (Hz) only. */
     public Result setFrequency(long hz) {
+        return tune(hz, null);
+    }
+
+    /**
+     * Set the dial frequency and, if {@code mode} is given, the rig mode — over a
+     * single rigctld connection ({@code F <hz>} then {@code M <mode> 0}). A band
+     * change thus lands FT8-ready (e.g. PKTUSB = Data-U).
+     */
+    public Result tune(long hz, String mode) {
         if (!enabled) {
             return new Result(false, "rigctld disabled — set ft8.rigctld.enabled=true and point "
                     + "WSJT-X at Hamlib NET rigctl to retune from here");
@@ -55,17 +64,35 @@ public class RigControl {
             s.connect(new InetSocketAddress(host, port), TIMEOUT_MS);
             s.setSoTimeout(TIMEOUT_MS);
             OutputStream out = s.getOutputStream();
+            InputStream in = s.getInputStream();
+
             out.write(("F " + hz + "\n").getBytes(StandardCharsets.US_ASCII));
             out.flush();
-            String resp = readLine(s.getInputStream());
-            if (isOk(resp)) {
-                log.info("rigctld: set frequency {} Hz", hz);
-                return new Result(true, "ok");
+            String fResp = readLine(in);
+            if (!isOk(fResp)) {
+                return new Result(false, "rigctld set-freq error: " + nz(fResp));
             }
-            return new Result(false, "rigctld error: " + (resp == null ? "no response" : resp.trim()));
+
+            if (mode != null && !mode.isBlank()) {
+                // passband 0 = keep the rig's default for that mode
+                out.write(("M " + mode.trim() + " 0\n").getBytes(StandardCharsets.US_ASCII));
+                out.flush();
+                String mResp = readLine(in);
+                if (!isOk(mResp)) {
+                    return new Result(false, "frequency set, but mode '" + mode + "' failed: " + nz(mResp));
+                }
+                log.info("rigctld: set {} Hz, mode {}", hz, mode.trim());
+            } else {
+                log.info("rigctld: set {} Hz", hz);
+            }
+            return new Result(true, "ok");
         } catch (Exception e) {
             return new Result(false, "rigctld unreachable at " + host + ":" + port + " (" + e.getMessage() + ")");
         }
+    }
+
+    private static String nz(String resp) {
+        return resp == null ? "no response" : resp.trim();
     }
 
     /** rigctld replies {@code RPRT 0} on success, {@code RPRT <neg>} on error. */

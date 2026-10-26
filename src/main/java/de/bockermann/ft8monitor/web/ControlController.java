@@ -66,10 +66,11 @@ public class ControlController {
         return Map.of("ok", backend.halt(auto));
     }
 
-    /** Retune the rig to a band's dial frequency (Hz) via rigctld (if enabled). */
+    /** Retune the rig to a band's dial frequency (Hz) + mode via rigctld (if enabled). */
     @PostMapping(path = "/frequency", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> frequency(@RequestParam long hz) {
-        RigControl.Result r = rig.setFrequency(hz);
+    public Map<String, Object> frequency(@RequestParam long hz,
+                                         @RequestParam(required = false) String mode) {
+        RigControl.Result r = rig.tune(hz, mode);
         return Map.of("ok", r.ok(), "message", r.message());
     }
 }
