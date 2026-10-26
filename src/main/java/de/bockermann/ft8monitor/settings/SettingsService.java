@@ -11,6 +11,8 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -36,6 +38,14 @@ public class SettingsService {
     private static final String KEY_PSK_HOST = "psk.host";
     private static final String KEY_PSK_PORT = "psk.port";
     private static final String KEY_PSK_INTERVAL = "psk.interval-seconds";
+
+    private static final String KEY_BANDS = "bands";
+    /** Standard FT8 dial frequencies for the bands the operator asked for. */
+    private static final List<Settings.Band> DEFAULT_BANDS = List.of(
+            new Settings.Band("80m", 3_573_000L, true),
+            new Settings.Band("40m", 7_074_000L, true),
+            new Settings.Band("20m", 14_074_000L, true),
+            new Settings.Band("10m", 28_074_000L, true));
 
     private static final String DEFAULT_PSK_HOST = "report.pskreporter.info";
     private static final int DEFAULT_PSK_PORT = 4739;
@@ -84,7 +94,8 @@ public class SettingsService {
                     props.getProperty(KEY_LOCATOR, ""),
                     props.getProperty(KEY_GRID_RESOLUTION, DEFAULT_GRID_RESOLUTION),
                     backfill,
-                    psk);
+                    psk,
+                    parseBands(props.getProperty(KEY_BANDS)));
         }
     }
 
@@ -105,9 +116,60 @@ public class SettingsService {
             props.setProperty(KEY_PSK_PORT, Integer.toString(validPort(psk.port())));
             props.setProperty(KEY_PSK_INTERVAL,
                     Integer.toString(Math.max(MIN_PSK_INTERVAL, psk.intervalSeconds())));
+            props.setProperty(KEY_BANDS, formatBands(normalizeBands(incoming.bands())));
             save();
             return get();
         }
+    }
+
+    /** Keep valid bands (named, positive frequency); fall back to the defaults. */
+    private static List<Settings.Band> normalizeBands(List<Settings.Band> bands) {
+        if (bands == null || bands.isEmpty()) {
+            return DEFAULT_BANDS;
+        }
+        List<Settings.Band> out = new ArrayList<>(bands.size());
+        for (Settings.Band b : bands) {
+            String name = b.name() == null ? "" : b.name().trim().replaceAll("[,:]", "");
+            if (!name.isEmpty() && b.freqHz() > 0) {
+                out.add(new Settings.Band(name, b.freqHz(), b.enabled()));
+            }
+        }
+        return out.isEmpty() ? DEFAULT_BANDS : out;
+    }
+
+    private static List<Settings.Band> parseBands(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return DEFAULT_BANDS;
+        }
+        List<Settings.Band> out = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String[] f = part.split(":");
+            if (f.length != 3) {
+                continue;
+            }
+            try {
+                String name = f[0].trim();
+                long hz = Long.parseLong(f[1].trim());
+                boolean enabled = Boolean.parseBoolean(f[2].trim());
+                if (!name.isEmpty() && hz > 0) {
+                    out.add(new Settings.Band(name, hz, enabled));
+                }
+            } catch (NumberFormatException ignored) {
+                // skip malformed entry
+            }
+        }
+        return out.isEmpty() ? DEFAULT_BANDS : out;
+    }
+
+    private static String formatBands(List<Settings.Band> bands) {
+        StringBuilder sb = new StringBuilder();
+        for (Settings.Band b : bands) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(b.name()).append(':').append(b.freqHz()).append(':').append(b.enabled());
+        }
+        return sb.toString();
     }
 
     private static int parseInt(String s, int fallback) {

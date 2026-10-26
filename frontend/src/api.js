@@ -28,3 +28,7 @@ export function controlReplyUrl(id) {
 export function controlHaltUrl(auto = false) {
   return `${apiBase}/control/halt?auto=${auto ? 'true' : 'false'}`;
 }
+
+export function controlFrequencyUrl(hz) {
+  return `${apiBase}/control/frequency?hz=${hz}`;
+}

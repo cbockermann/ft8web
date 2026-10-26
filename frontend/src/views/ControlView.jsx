@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { controlStreamUrl, controlStatusUrl, controlReplyUrl, controlHaltUrl } from '../api.js';
+import {
+  controlStreamUrl,
+  controlStatusUrl,
+  controlReplyUrl,
+  controlHaltUrl,
+  controlFrequencyUrl,
+  settingsUrl,
+} from '../api.js';
 import MessageText from '../components/MessageText.jsx';
 import { useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
 
@@ -22,6 +29,7 @@ export default function ControlView() {
   const [showFlags, setShowFlags] = useMetaToggle('feed.showMeta');
   const [note, setNote] = useState('');
   const [pendingId, setPendingId] = useState('');
+  const [bands, setBands] = useState([]);
   const esRef = useRef(null);
 
   useEffect(() => {
@@ -29,6 +37,13 @@ export default function ControlView() {
     fetch(controlStatusUrl)
       .then((r) => (r.ok ? r.json() : null))
       .then((s) => active && s && setStatus(s))
+      .catch(() => {});
+
+    fetch(settingsUrl)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => {
+        if (active && s && Array.isArray(s.bands)) setBands(s.bands.filter((b) => b.enabled));
+      })
       .catch(() => {});
 
     const es = new EventSource(controlStreamUrl);
@@ -82,6 +97,18 @@ export default function ControlView() {
     }
   };
 
+  const tune = async (b) => {
+    try {
+      const r = await fetch(controlFrequencyUrl(b.freqHz), { method: 'POST' });
+      const body = await r.json().catch(() => ({}));
+      flash(body.ok ? `Tuned ${b.name} · ${(b.freqHz / 1e6).toFixed(3)} MHz` : body.message || 'Retune failed');
+    } catch {
+      flash('Retune failed — backend unreachable');
+    }
+  };
+
+  const activeBand = bands.find((b) => status.dialHz && Math.abs(status.dialHz - b.freqHz) < 3000);
+
   const shown = onlyCq ? decodes.filter((d) => d.cq) : decodes;
   const pseudo = useMemo(() => shown.map((d) => ({ msg: d.message })), [shown]);
   const flagFor = useCallsignFlags(pseudo, showFlags);
@@ -111,6 +138,21 @@ export default function ControlView() {
             {status.txWatchdog && <span className="ctl-warn">watchdog</span>}
             {status.txMessage && <span className="ctl-txmsg">“{status.txMessage.trim()}”</span>}
           </>
+        )}
+        {bands.length > 0 && (
+          <div className="seg ctl-bands">
+            {bands.map((b) => (
+              <button
+                type="button"
+                key={b.name}
+                className={activeBand && activeBand.name === b.name ? 'active' : ''}
+                onClick={() => tune(b)}
+                title={`${(b.freqHz / 1e6).toFixed(3)} MHz`}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
         )}
         <button type="button" className="ctl-halt" onClick={halt} title="Stop transmitting now">
           ■ Halt Tx

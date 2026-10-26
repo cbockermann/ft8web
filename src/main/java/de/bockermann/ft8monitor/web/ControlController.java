@@ -1,5 +1,6 @@
 package de.bockermann.ft8monitor.web;
 
+import de.bockermann.ft8monitor.rig.RigControl;
 import de.bockermann.ft8monitor.wsjtx.ControlStatus;
 import de.bockermann.ft8monitor.wsjtx.WsjtxBackend;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,10 +26,12 @@ public class ControlController {
 
     private final WsjtxBackend backend;
     private final ControlBroadcaster broadcaster;
+    private final RigControl rig;
 
-    public ControlController(WsjtxBackend backend, ControlBroadcaster broadcaster) {
+    public ControlController(WsjtxBackend backend, ControlBroadcaster broadcaster, RigControl rig) {
         this.backend = backend;
         this.broadcaster = broadcaster;
+        this.rig = rig;
     }
 
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -61,5 +64,12 @@ public class ControlController {
     @PostMapping(path = "/halt", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Boolean> halt(@RequestParam(defaultValue = "false") boolean auto) {
         return Map.of("ok", backend.halt(auto));
+    }
+
+    /** Retune the rig to a band's dial frequency (Hz) via rigctld (if enabled). */
+    @PostMapping(path = "/frequency", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> frequency(@RequestParam long hz) {
+        RigControl.Result r = rig.setFrequency(hz);
+        return Map.of("ok", r.ok(), "message", r.message());
     }
 }

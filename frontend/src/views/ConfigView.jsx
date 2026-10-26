@@ -9,13 +9,23 @@ const DEFAULT_PSK = {
   intervalSeconds: 300,
 };
 
+const DEFAULT_BANDS = [
+  { name: '80m', freqHz: 3573000, enabled: true },
+  { name: '40m', freqHz: 7074000, enabled: true },
+  { name: '20m', freqHz: 14074000, enabled: true },
+  { name: '10m', freqHz: 28074000, enabled: true },
+];
+
 const DEFAULTS = {
   callsign: '',
   locator: '',
   gridResolution: 'square',
   backfillMinutes: 15,
   psk: { ...DEFAULT_PSK },
+  bands: DEFAULT_BANDS.map((b) => ({ ...b })),
 };
+
+const bandsOf = (s) => (Array.isArray(s.bands) && s.bands.length ? s.bands : DEFAULT_BANDS).map((b) => ({ ...b }));
 
 function Field({ label, desc, children }) {
   return (
@@ -45,6 +55,7 @@ export default function ConfigView() {
           gridResolution: s.gridResolution || 'square',
           backfillMinutes: s.backfillMinutes ?? 15,
           psk: { ...DEFAULT_PSK, ...(s.psk || {}) },
+          bands: bandsOf(s),
         }),
       )
       .catch(() => setStatus({ ok: false, msg: 'Could not load settings.' }))
@@ -57,6 +68,13 @@ export default function ConfigView() {
     const value = e.target.type === 'checkbox' ? e.target.checked : parse(e.target.value);
     setForm((f) => ({ ...f, psk: { ...f.psk, [name]: value } }));
   };
+
+  const setBand = (i, key, value) =>
+    setForm((f) => ({ ...f, bands: f.bands.map((b, j) => (j === i ? { ...b, [key]: value } : b)) }));
+  const addBand = () =>
+    setForm((f) => ({ ...f, bands: [...f.bands, { name: '', freqHz: 0, enabled: true }] }));
+  const removeBand = (i) =>
+    setForm((f) => ({ ...f, bands: f.bands.filter((_, j) => j !== i) }));
 
   const save = (e) => {
     e.preventDefault();
@@ -76,6 +94,7 @@ export default function ConfigView() {
           gridResolution: body.gridResolution || 'square',
           backfillMinutes: body.backfillMinutes ?? 15,
           psk: { ...DEFAULT_PSK, ...(body.psk || {}) },
+          bands: bandsOf(body),
         });
         setStatus({ ok: true, msg: 'Saved.' });
       })
@@ -166,6 +185,51 @@ export default function ConfigView() {
               onChange={pskField('intervalSeconds', (v) => Number(v))}
             />
           </Field>
+        </fieldset>
+
+        <fieldset className="config-section">
+          <legend>Bands</legend>
+          <p className="field-desc">
+            Selectable bands in the Control view, with their FT8 dial frequency. Uncheck “Shown” to
+            hide a band from the picker. Retuning the rig needs rigctld (see README).
+          </p>
+          <div className="band-editor">
+            <div className="band-row band-head">
+              <span>Name</span>
+              <span>Dial freq (MHz)</span>
+              <span>Shown</span>
+              <span />
+            </div>
+            {form.bands.map((b, i) => (
+              <div className="band-row" key={i}>
+                <input
+                  value={b.name}
+                  onChange={(e) => setBand(i, 'name', e.target.value)}
+                  placeholder="e.g. 20m"
+                  spellCheck={false}
+                />
+                <input
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  value={b.freqHz ? (b.freqHz / 1e6).toFixed(3) : ''}
+                  onChange={(e) => setBand(i, 'freqHz', Math.round(Number(e.target.value) * 1e6))}
+                  placeholder="e.g. 14.074"
+                />
+                <input
+                  type="checkbox"
+                  checked={b.enabled}
+                  onChange={(e) => setBand(i, 'enabled', e.target.checked)}
+                />
+                <button type="button" className="band-remove" onClick={() => removeBand(i)} title="Remove band">
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          <button type="button" className="band-add" onClick={addBand}>
+            + Add band
+          </button>
         </fieldset>
 
         <div className="config-actions">

@@ -1,13 +1,16 @@
 package de.bockermann.ft8monitor.settings;
 
+import de.bockermann.ft8monitor.settings.Settings.Band;
 import de.bockermann.ft8monitor.settings.Settings.Psk;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SettingsServiceTest {
 
@@ -18,7 +21,7 @@ class SettingsServiceTest {
     }
 
     private static Settings settings(String call, String loc, String res, int backfill, Psk psk) {
-        return new Settings(call, loc, res, backfill, psk);
+        return new Settings(call, loc, res, backfill, psk, null);
     }
 
     @Test
@@ -81,5 +84,31 @@ class SettingsServiceTest {
         assertEquals(4739, svc.get().psk().port());        // invalid port → default
         assertEquals(120, svc.get().psk().intervalSeconds()); // below floor → 120
         assertEquals("report.pskreporter.info", svc.get().psk().host()); // blank → default
+    }
+
+    @Test
+    void defaultBandsWhenUnset(@TempDir Path dir) {
+        List<Band> bands = service(dir).get().bands();
+        assertEquals(4, bands.size()); // 80/40/20/10m
+        assertTrue(bands.stream().anyMatch(b -> b.name().equals("20m") && b.freqHz() == 14_074_000L));
+    }
+
+    @Test
+    void persistsCustomBandsAcrossReload(@TempDir Path dir) {
+        SettingsService svc = service(dir);
+        svc.update(new Settings("", "", "square", 15, new Psk(false, "", "", 4739, 300),
+                List.of(new Band("60m", 5_357_000L, true), new Band("30m", 10_136_000L, false))));
+        List<Band> bands = service(dir).get().bands(); // re-read from the file
+        assertEquals(2, bands.size());
+        assertEquals("60m", bands.get(0).name());
+        assertEquals(10_136_000L, bands.get(1).freqHz());
+        assertFalse(bands.get(1).enabled());
+    }
+
+    @Test
+    void emptyBandsFallBackToDefaults(@TempDir Path dir) {
+        SettingsService svc = service(dir);
+        svc.update(new Settings("", "", "square", 15, new Psk(false, "", "", 4739, 300), List.of()));
+        assertEquals(4, svc.get().bands().size());
     }
 }

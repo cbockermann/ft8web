@@ -258,6 +258,22 @@ backend swap; only the `StationBackend` impl changes and capability flags flip o
 
 ---
 
+## 8a. Band selection & retuning (MVP)
+
+Bands are configurable on the Config page (name + FT8 dial frequency + whether
+shown); defaults are 80 m (3.573), 40 m (7.074), 20 m (14.074), 10 m (28.074),
+stored in the settings file. The Control view offers the enabled bands and
+highlights the one matching WSJT-X's current dial frequency.
+
+Retuning the rig is **not** possible over the WSJT-X UDP protocol (no
+set-frequency command). ft8web therefore sets the frequency via Hamlib
+**rigctld** (`RigControl`, `ft8.rigctld.*`, off by default). This needs shared
+CAT: run `rigctld` and point WSJT-X at "Hamlib NET rigctl" (same host:port) so
+WSJT-X keeps working and follows the frequency we set — its Status then reports
+the new QRG back to the Control view. Without rigctld the band picker explains
+how to enable it. This is the first concrete use of the Hamlib middleware from
+the daemon plan, introduced early just for the retune path.
+
 ## 9. Reused from ft8web
 
 `Callsigns` (parsing), `QsoGrouper` (sequence/dupe logic), `GeoLookup` /

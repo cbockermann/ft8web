@@ -58,6 +58,14 @@ ft8:
     port: ${FT8_WSJTX_PORT:2237}
     watchdog-ms: ${FT8_WSJTX_WATCHDOG_MS:10000}
 
+  # Hamlib rigctld, used only to set the dial frequency from the Control view
+  # (WSJT-X UDP cannot). Needs shared CAT: run rigctld and point WSJT-X at
+  # "Hamlib NET rigctl" (same host:port). Off by default.
+  rigctld:
+    enabled: ${FT8_RIGCTLD_ENABLED:false}
+    host: ${FT8_RIGCTLD_HOST:127.0.0.1}
+    port: ${FT8_RIGCTLD_PORT:4532}
+
   # Bundled UDP→Kafka bridge: replaces ft8mon's scripts/udp_kafka_bridge.py.
   # Off by default; enable it on the host that receives ft8mon's -json output
   # (ft8mon ... -json <this-host>:5001). Data still flows UDP → Kafka → consumer.

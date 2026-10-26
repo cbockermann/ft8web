@@ -664,3 +664,38 @@ section h2 {
 }
 .ctl-reply:hover { filter: brightness(1.1); }
 .ctl-reply:disabled { opacity: 0.5; cursor: default; }
+.ctl-bands { flex-wrap: wrap; }
+
+/* Band editor (Config view) */
+.band-editor { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.5rem 0 0.3rem; }
+.band-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 4rem 2rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+.band-head { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.band-row input { width: 100%; }
+.band-row input[type="checkbox"] { width: auto; justify-self: center; }
+.band-remove {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+}
+.band-remove:hover { color: #e06c6c; border-color: #e06c6c; }
+.band-add {
+  align-self: flex-start;
+  margin-top: 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.2rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.band-add:hover { border-color: var(--accent); }

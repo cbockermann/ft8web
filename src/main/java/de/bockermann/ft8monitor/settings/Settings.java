@@ -1,5 +1,7 @@
 package de.bockermann.ft8monitor.settings;
 
+import java.util.List;
+
 /**
  * Editable station settings for this ft8web installation.
  *
@@ -13,9 +15,19 @@ package de.bockermann.ft8monitor.settings;
  *                        on the next restart.
  * @param psk            PSKReporter feeder settings (reuses callsign/locator as
  *                       the reporting station's identity).
+ * @param bands          selectable FT8 bands for the Control view (name + dial
+ *                       frequency + whether it is offered). May be empty/null to
+ *                       keep the current/default list.
  */
 public record Settings(String callsign, String locator, String gridResolution,
-                       int backfillMinutes, Psk psk) {
+                       int backfillMinutes, Psk psk, List<Band> bands) {
+
+    /**
+     * A selectable band: a display {@code name} (e.g. "20m"), its FT8 dial
+     * frequency in Hz, and whether it is offered in the band picker.
+     */
+    public record Band(String name, long freqHz, boolean enabled) {
+    }
 
     /**
      * PSKReporter feeder configuration.
