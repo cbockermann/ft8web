@@ -1,5 +1,6 @@
 package de.bockermann.ft8monitor.wsjtx;
 
+import de.bockermann.ft8monitor.qsolog.QsoLogRepository;
 import de.bockermann.ft8monitor.web.ControlBroadcaster;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -41,6 +42,7 @@ public class WsjtxBackend {
     private final String bind;
     private final int port;
     private final ControlBroadcaster broadcaster;
+    private final QsoLogRepository qsoLog;
 
     private volatile DatagramSocket socket;
     private volatile Thread receiver;
@@ -62,11 +64,12 @@ public class WsjtxBackend {
     public WsjtxBackend(@Value("${ft8.wsjtx.enabled:true}") boolean enabled,
                         @Value("${ft8.wsjtx.bind:0.0.0.0}") String bind,
                         @Value("${ft8.wsjtx.port:2237}") int port,
-                        ControlBroadcaster broadcaster) {
+                        ControlBroadcaster broadcaster, QsoLogRepository qsoLog) {
         this.enabled = enabled;
         this.bind = bind;
         this.port = port;
         this.broadcaster = broadcaster;
+        this.qsoLog = qsoLog;
     }
 
     @PostConstruct
@@ -145,7 +148,7 @@ public class WsjtxBackend {
                 // Tag with the band from the dial frequency current at decode time.
                 broadcaster.sendDecode(ControlDecode.of(id, d, latest.dialHz()));
             }
-            case WsjtxCodec.LoggedAdif a -> log.info("WSJT-X logged QSO (ADIF): {}", a.adif());
+            case WsjtxCodec.LoggedAdif a -> qsoLog.importAdif(a.adif(), "wsjtx");
             case WsjtxCodec.Closed ignored -> {
                 markedDown = true;
                 latest = ControlStatus.down();

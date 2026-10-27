@@ -4,6 +4,7 @@ import { apiBase, settingsUrl } from '../api.js';
 import { fmtTime } from '../lib/format.js';
 import { locatorCenter } from '../lib/maidenhead.js';
 import { useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
+import { useWorkedCalls } from '../qsolog/WorkedCallsProvider.jsx';
 import { snrColor, SNR_MIN, SNR_MAX, SNR_GRADIENT, fmtDb } from '../lib/snr.js';
 
 // Bar-chart geometry for the per-cell hover tooltip.
@@ -83,6 +84,7 @@ export default function ReportsView() {
   const [level, setLevel] = useState(() => loadPref('rp.level', 'field'));
   const [region, setRegion] = useState(() => loadPref('rp.region', 'world'));
   const [showFlags, setShowFlags] = useMetaToggle('feed.showMeta');
+  const { isWorked } = useWorkedCalls();
   const [home, setHome] = useState(null);
   const [ownCall, setOwnCall] = useState(''); // configured station callsign, if any
   const [hover, setHover] = useState(null); // { cell, x, y } for the tooltip
@@ -234,7 +236,13 @@ export default function ReportsView() {
     return (
       <span className="flag">
         {f && <span title={f.country}>{f.flag} </span>}
-        {c}
+        {isWorked(c) ? (
+          <span className="worked" title="Worked before">
+            {c}
+          </span>
+        ) : (
+          c
+        )}
       </span>
     );
   };

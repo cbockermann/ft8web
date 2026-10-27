@@ -766,3 +766,65 @@ section h2 {
   font-size: 0.8rem;
 }
 .band-add:hover { border-color: var(--accent); }
+
+/* "Worked before" callsign marking (all FT8-message views). */
+.worked {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+
+/* QSOs view */
+.qsos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--panel);
+}
+.qsos-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.qsos-head h2 { margin: 0; font-size: 1rem; }
+.qsos-count { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
+.qsos-tools { display: flex; align-items: center; gap: 0.8rem; }
+.import-btn {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.25rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.import-btn:hover { filter: brightness(1.1); }
+.qsos-tools .ok { color: #46c46a; font-size: 0.8rem; }
+.qsos-tools .error { color: #e06c6c; font-size: 0.8rem; }
+.qsos-table-wrap {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.qsos-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.qsos-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.qsos-table td { padding: 0.3rem 0.6rem; border-bottom: 1px solid var(--border); }
+.qsos-table tbody tr:hover { background: #19242f; }
+.qsos-table .mono { font-family: ui-monospace, Menlo, monospace; }
+.qsos-table .call { font-weight: 600; }
+.qsos-empty { color: var(--muted); text-align: center; padding: 1rem; }

@@ -33,3 +33,10 @@ export function controlFrequencyUrl(hz, mode) {
   const m = mode ? `&mode=${encodeURIComponent(mode)}` : '';
   return `${apiBase}/control/frequency?hz=${hz}${m}`;
 }
+
+// QSO log
+export const qsosCallsUrl = `${apiBase}/qsos/calls`;
+export const qsosImportUrl = `${apiBase}/qsos/import`;
+export function qsosUrl(limit = 1000) {
+  return `${apiBase}/qsos?limit=${limit}`;
+}
