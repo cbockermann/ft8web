@@ -671,6 +671,35 @@ section h2 {
   margin: 0 0 0.4rem;
 }
 .ctl-qso-empty { color: var(--muted); font-size: 0.85rem; }
+
+/* Own transmission highlighted in the decode stream. */
+.ctl-row.tx { background: #142a21; }
+.ctl-row.tx .ctl-msg { color: #7fd4a0; }
+.ctl-row.tx .ctl-snr { color: #7fd4a0; font-weight: 600; }
+
+/* QSO dialog thread (lower panel). */
+.qso-thread { list-style: none; margin: 0; padding: 0.1rem 0.2rem 0 0; font-size: 0.85rem; }
+.qso-line {
+  display: grid;
+  grid-template-columns: 3.4rem 4.5rem 1fr 3rem;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.14rem 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.qso-dir { font-size: 0.72rem; white-space: nowrap; font-weight: 600; }
+.qso-line.tx .qso-dir { color: #7fd4a0; }
+.qso-line.rx .qso-dir { color: var(--accent); }
+.qso-time { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem; }
+.qso-msg { font-family: ui-monospace, Menlo, monospace; color: var(--text); }
+.qso-line.tx .qso-msg { color: #7fd4a0; }
+.qso-snr {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.78rem;
+}
 .ctl-row {
   display: grid;
   grid-template-columns: 4.5rem 2.8rem 2.5rem 2.5rem 3.5rem 1fr auto;

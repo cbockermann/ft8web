@@ -3,6 +3,7 @@ import { controlReplyUrl, controlHaltUrl, controlFrequencyUrl, settingsUrl } fro
 import MessageText from '../components/MessageText.jsx';
 import { useControl } from '../control/ControlProvider.jsx';
 import { useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
+import { callTokens } from '../lib/callsign.js';
 
 function fmtFreq(hz) {
   return hz ? `${(hz / 1e6).toFixed(3)} MHz` : '—';
@@ -78,8 +79,26 @@ export default function ControlView() {
   const activeBand = bands.find((b) => status.dialHz && Math.abs(status.dialHz - b.freqHz) < 3000);
 
   const shown = onlyCq ? decodes.filter((d) => d.cq) : decodes;
-  const pseudo = useMemo(() => shown.map((d) => ({ msg: d.message })), [shown]);
+  // Resolve flags over all decodes so the QSO thread below gets them too.
+  const pseudo = useMemo(() => decodes.map((d) => ({ msg: d.message })), [decodes]);
   const flagFor = useCallsignFlags(pseudo, showFlags);
+
+  // Current QSO = the pair {our call, WSJT-X dxCall}. The thread is every related
+  // message (our Tx + the DX's messages + the CQ we answered), oldest first.
+  const me = (status.deCall || '').toUpperCase();
+  const dx = (status.dxCall || '').toUpperCase();
+  const thread = useMemo(() => {
+    if (!dx) return [];
+    return decodes
+      .filter((d) => {
+        const toks = callTokens(d.message || '');
+        const hasDx = toks.includes(dx);
+        const hasMe = me && toks.includes(me);
+        return hasDx && (hasMe || d.tx || d.cq);
+      })
+      .slice()
+      .reverse();
+  }, [decodes, dx, me]);
 
   return (
     <main className="control">
@@ -148,33 +167,54 @@ export default function ControlView() {
           </li>
         )}
         {shown.map((d, i) => (
-          <li className={`ctl-row ${d.cq ? 'cq' : ''}`} key={`${d.id}-${i}`}>
+          <li className={`ctl-row ${d.cq ? 'cq' : ''} ${d.tx ? 'tx' : ''}`} key={`${d.id}-${i}`}>
             <span className="ctl-time">{d.at}</span>
             <span className="ctl-band">{d.band || ''}</span>
-            <span className="ctl-snr">{d.snr > 0 ? `+${d.snr}` : d.snr}</span>
-            <span className="ctl-dt">{d.dt?.toFixed(1)}</span>
+            <span className="ctl-snr">{d.tx ? 'Tx' : d.snr > 0 ? `+${d.snr}` : d.snr}</span>
+            <span className="ctl-dt">{d.tx ? '' : d.dt?.toFixed(1)}</span>
             <span className="ctl-df">{d.df}</span>
             <span className="ctl-msg">
               <MessageText msg={d.message} flagFor={showFlags ? flagFor : null} />
             </span>
-            <button
-              type="button"
-              className="ctl-reply"
-              disabled={pendingId === d.id}
-              onClick={() => reply(d)}
-              title="Answer this station (WSJT-X auto-sequences the QSO)"
-            >
-              {d.cq ? 'Answer' : 'Reply'}
-            </button>
+            {d.tx ? (
+              <span />
+            ) : (
+              <button
+                type="button"
+                className="ctl-reply"
+                disabled={pendingId === d.id}
+                onClick={() => reply(d)}
+                title="Answer this station (WSJT-X auto-sequences the QSO)"
+              >
+                {d.cq ? 'Answer' : 'Reply'}
+              </button>
+            )}
           </li>
         ))}
       </ul>
 
       <section className="ctl-qso">
-        <h3>QSO</h3>
-        <p className="ctl-qso-empty">
-          The CQ / response sequence will appear here — pick a station above to start.
-        </p>
+        <h3>{dx ? `QSO with ${dx}` : 'QSO'}</h3>
+        {!dx && (
+          <p className="ctl-qso-empty">
+            The CQ / response sequence will appear here — pick a station above to start.
+          </p>
+        )}
+        {dx && thread.length === 0 && <p className="ctl-qso-empty">Waiting for messages with {dx}…</p>}
+        {dx && thread.length > 0 && (
+          <ul className="qso-thread">
+            {thread.map((d, i) => (
+              <li className={`qso-line ${d.tx ? 'tx' : 'rx'}`} key={`${d.id}-${i}`}>
+                <span className="qso-dir">{d.tx ? '▲ Tx' : '▼ Rx'}</span>
+                <span className="qso-time">{d.at}</span>
+                <span className="qso-msg">
+                  <MessageText msg={d.message} flagFor={showFlags ? flagFor : null} />
+                </span>
+                <span className="qso-snr">{d.tx ? '' : d.snr > 0 ? `+${d.snr}` : d.snr}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </main>
   );

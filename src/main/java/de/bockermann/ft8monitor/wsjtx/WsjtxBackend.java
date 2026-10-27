@@ -48,6 +48,7 @@ public class WsjtxBackend {
     private volatile SocketAddress peer;     // where to send commands back
     private volatile long lastRxEpoch;
     private volatile boolean markedDown = true;
+    private volatile boolean lastTransmitting = false;
     private volatile ControlStatus latest = ControlStatus.down();
 
     // Recent decodes, keyed by a synthetic id, so a reply can echo the exact fields.
@@ -126,6 +127,15 @@ public class WsjtxBackend {
             case WsjtxCodec.Status s -> {
                 latest = ControlStatus.of(s);
                 broadcaster.sendStatus(latest);
+                // Rising edge of 'transmitting' = we just started sending txMessage.
+                if (s.transmitting() && !lastTransmitting) {
+                    String txMsg = s.txMessage() == null ? "" : s.txMessage().trim();
+                    if (!txMsg.isEmpty()) {
+                        broadcaster.sendDecode(
+                                ControlDecode.transmit("tx-" + System.nanoTime(), txMsg, s.dialHz(), s.txDf()));
+                    }
+                }
+                lastTransmitting = s.transmitting();
             }
             case WsjtxCodec.Decode d -> {
                 String id = idFor(d);

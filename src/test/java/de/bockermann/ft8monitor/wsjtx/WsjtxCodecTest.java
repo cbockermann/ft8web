@@ -86,6 +86,15 @@ class WsjtxCodecTest {
     }
 
     @Test
+    void transmitEntryIsFlaggedBandedAndTrimmed() {
+        ControlDecode tx = ControlDecode.transmit("tx-1", "DL1ABC DN9CBO 73 ", 14_074_000L, 1500);
+        assertTrue(tx.tx());
+        assertFalse(tx.cq());
+        assertEquals("20m", tx.band());
+        assertEquals("DL1ABC DN9CBO 73", tx.message());
+    }
+
+    @Test
     void buildsReplyEchoingTheDecode() {
         byte[] msg = WsjtxCodec.reply("WSJT-X", 39_600_000, -7, 0.2, 1500, "~", "CQ DL1ABC JO31", false);
         ByteBuffer b = ByteBuffer.wrap(msg).order(ByteOrder.BIG_ENDIAN);
