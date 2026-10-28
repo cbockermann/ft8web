@@ -103,6 +103,22 @@ public class QsoLogRepository {
         return jdbc.queryForList("SELECT DISTINCT call FROM qso", String.class);
     }
 
+    /** Per-call stats for the filter predicates: how often, and when last, we worked it. */
+    public CallStats callStats(String call) {
+        return jdbc.queryForObject(
+                "SELECT COUNT(*) c, MAX(start_unix) m FROM qso WHERE call = ?",
+                (rs, i) -> {
+                    int c = rs.getInt("c");
+                    long m = rs.getLong("m");
+                    return new CallStats(c, rs.wasNull() ? null : m);
+                },
+                up(call));
+    }
+
+    /** Count and last-worked time (epoch seconds, null if never) for a callsign. */
+    public record CallStats(int count, Long lastEpoch) {
+    }
+
     public long count() {
         Long n = jdbc.queryForObject("SELECT COUNT(*) FROM qso", Long.class);
         return n == null ? 0 : n;

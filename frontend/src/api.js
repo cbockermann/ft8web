@@ -34,6 +34,12 @@ export function controlFrequencyUrl(hz, mode) {
   return `${apiBase}/control/frequency?hz=${hz}${m}`;
 }
 
+// Saved Control-view filters
+export const filtersUrl = `${apiBase}/filters`;
+export function filterUrl(name) {
+  return `${apiBase}/filters/${encodeURIComponent(name)}`;
+}
+
 // QSO log
 export const qsosCallsUrl = `${apiBase}/qsos/calls`;
 export const qsosImportUrl = `${apiBase}/qsos/import`;

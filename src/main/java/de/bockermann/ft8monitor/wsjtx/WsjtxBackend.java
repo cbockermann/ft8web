@@ -43,6 +43,7 @@ public class WsjtxBackend {
     private final int port;
     private final ControlBroadcaster broadcaster;
     private final QsoLogRepository qsoLog;
+    private final DecodeFactsService facts;
 
     private volatile DatagramSocket socket;
     private volatile Thread receiver;
@@ -64,12 +65,14 @@ public class WsjtxBackend {
     public WsjtxBackend(@Value("${ft8.wsjtx.enabled:true}") boolean enabled,
                         @Value("${ft8.wsjtx.bind:0.0.0.0}") String bind,
                         @Value("${ft8.wsjtx.port:2237}") int port,
-                        ControlBroadcaster broadcaster, QsoLogRepository qsoLog) {
+                        ControlBroadcaster broadcaster, QsoLogRepository qsoLog,
+                        DecodeFactsService facts) {
         this.enabled = enabled;
         this.bind = bind;
         this.port = port;
         this.broadcaster = broadcaster;
         this.qsoLog = qsoLog;
+        this.facts = facts;
     }
 
     @PostConstruct
@@ -145,8 +148,8 @@ public class WsjtxBackend {
                 synchronized (recent) {
                     recent.put(id, d);
                 }
-                // Tag with the band from the dial frequency current at decode time.
-                broadcaster.sendDecode(ControlDecode.of(id, d, latest.dialHz()));
+                // Tag with the band (dial freq at decode time) and the filter facts.
+                broadcaster.sendDecode(ControlDecode.of(id, d, latest.dialHz(), facts.resolve(d)));
             }
             case WsjtxCodec.LoggedAdif a -> qsoLog.importAdif(a.adif(), "wsjtx");
             case WsjtxCodec.Closed ignored -> {

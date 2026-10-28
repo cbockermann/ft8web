@@ -828,3 +828,39 @@ section h2 {
 .qsos-table .mono { font-family: ui-monospace, Menlo, monospace; }
 .qsos-table .call { font-weight: 600; }
 .qsos-empty { color: var(--muted); text-align: center; padding: 1rem; }
+
+/* Control-view decode filter bar */
+.ctl-filter { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.ctl-filter-input { flex: 1 1 260px; width: auto; max-width: none; }
+.ctl-filter-count { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ctl-filter-err {
+  color: #e0a53a;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  max-width: 44ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ctl-filter-spacer { flex: 0; }
+.ctl-save-name { width: 90px; max-width: 90px; flex: 0 0 auto; }
+.ctl-save-btn {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.ctl-save-btn:disabled { opacity: 0.45; cursor: default; }
+.ctl-del-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 0.1rem 0.45rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.ctl-del-btn:hover { color: #e06c6c; border-color: #e06c6c; }
+.ctl-row.dim { opacity: 0.3; }

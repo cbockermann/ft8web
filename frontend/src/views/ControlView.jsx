@@ -4,6 +4,8 @@ import MessageText from '../components/MessageText.jsx';
 import { useControl } from '../control/ControlProvider.jsx';
 import { useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
 import { callTokens } from '../lib/callsign.js';
+import { compileFilter, ctxFor } from '../lib/filterExpr.js';
+import { filtersUrl, filterUrl } from '../api.js';
 
 function fmtFreq(hz) {
   return hz ? `${(hz / 1e6).toFixed(3)} MHz` : '—';
@@ -23,6 +25,10 @@ export default function ControlView() {
   const [note, setNote] = useState('');
   const [pendingId, setPendingId] = useState('');
   const [bands, setBands] = useState([]);
+  const [filterText, setFilterText] = useState('');
+  const [filterMode, setFilterMode] = useState('hide'); // hide | dim
+  const [saved, setSaved] = useState([]);
+  const [saveName, setSaveName] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -78,7 +84,43 @@ export default function ControlView() {
 
   const activeBand = bands.find((b) => status.dialHz && Math.abs(status.dialHz - b.freqHz) < 3000);
 
-  const shown = onlyCq ? decodes.filter((d) => d.cq) : decodes;
+  // Saved filters.
+  const loadSaved = () =>
+    fetch(filtersUrl)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((l) => Array.isArray(l) && setSaved(l))
+      .catch(() => {});
+  useEffect(() => {
+    loadSaved();
+  }, []);
+  const saveFilter = async () => {
+    const name = saveName.trim();
+    if (!name || !filterText.trim()) return;
+    await fetch(filtersUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, expression: filterText }),
+    }).catch(() => {});
+    setSaveName('');
+    loadSaved();
+  };
+  const deleteFilter = async (name) => {
+    await fetch(filterUrl(name), { method: 'DELETE' }).catch(() => {});
+    loadSaved();
+  };
+
+  // Compile the filter once; apply live to the in-memory buffer.
+  const compiled = useMemo(() => compileFilter(filterText), [filterText]);
+  const matches = (d) => {
+    if (onlyCq && !d.cq) return false;
+    return compiled.test(ctxFor(d));
+  };
+  const nonTx = decodes.filter((d) => !d.tx);
+  const matchCount = nonTx.filter(matches).length;
+  // Hide mode drops non-matching (own Tx always shown); dim mode shows all, dimmed.
+  const shown = filterMode === 'hide' ? decodes.filter((d) => d.tx || matches(d)) : decodes;
+  const isDim = (d) => filterMode === 'dim' && !d.tx && !matches(d);
+
   // Resolve flags over all decodes so the QSO thread below gets them too.
   const pseudo = useMemo(() => decodes.map((d) => ({ msg: d.message })), [decodes]);
   const flagFor = useCallsignFlags(pseudo, showFlags);
@@ -158,6 +200,69 @@ export default function ControlView() {
         {note && <span className="ctl-note">{note}</span>}
       </div>
 
+      <div className="ctl-filter">
+        <input
+          className="filter-input ctl-filter-input"
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          placeholder="Filter — e.g. snr > -18 and not worked"
+          spellCheck={false}
+        />
+        <div className="seg">
+          <button type="button" className={filterMode === 'hide' ? 'active' : ''} onClick={() => setFilterMode('hide')}>
+            Hide
+          </button>
+          <button type="button" className={filterMode === 'dim' ? 'active' : ''} onClick={() => setFilterMode('dim')}>
+            Dim
+          </button>
+        </div>
+        {filterText.trim() &&
+          (compiled.ok ? (
+            <span className="ctl-filter-count">
+              {matchCount}/{nonTx.length}
+            </span>
+          ) : (
+            <span className="ctl-filter-err" title={compiled.error}>
+              ⚠ {compiled.error}
+            </span>
+          ))}
+        <span className="ctl-filter-spacer" />
+        <select
+          className="band-select"
+          value=""
+          onChange={(e) => {
+            const s = saved.find((x) => x.name === e.target.value);
+            if (s) {
+              setFilterText(s.expression);
+              setSaveName(s.name);
+            }
+          }}
+          title="Load a saved filter"
+        >
+          <option value="">Saved…</option>
+          {saved.map((s) => (
+            <option key={s.name} value={s.name}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <input
+          className="filter-input ctl-save-name"
+          value={saveName}
+          onChange={(e) => setSaveName(e.target.value)}
+          placeholder="name"
+          spellCheck={false}
+        />
+        <button type="button" className="ctl-save-btn" onClick={saveFilter} disabled={!saveName.trim() || !filterText.trim()}>
+          Save
+        </button>
+        {saveName.trim() && saved.some((s) => s.name === saveName.trim()) && (
+          <button type="button" className="ctl-del-btn" onClick={() => deleteFilter(saveName.trim())} title="Delete saved filter">
+            ×
+          </button>
+        )}
+      </div>
+
       <ul className="ctl-decodes">
         {shown.length === 0 && (
           <li className="ctl-empty">
@@ -167,7 +272,7 @@ export default function ControlView() {
           </li>
         )}
         {shown.map((d, i) => (
-          <li className={`ctl-row ${d.cq ? 'cq' : ''} ${d.tx ? 'tx' : ''}`} key={`${d.id}-${i}`}>
+          <li className={`ctl-row ${d.cq ? 'cq' : ''} ${d.tx ? 'tx' : ''} ${isDim(d) ? 'dim' : ''}`} key={`${d.id}-${i}`}>
             <span className="ctl-time">{d.at}</span>
             <span className="ctl-band">{d.band || ''}</span>
             <span className="ctl-snr">{d.tx ? 'Tx' : d.snr > 0 ? `+${d.snr}` : d.snr}</span>
