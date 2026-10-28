@@ -291,3 +291,112 @@ stats).
   vs **MQTT** (lighter on the Pi; client dep already present) — decide at phase 3.
 - Hard limits (power ceiling, max TX seconds, allowed bands) belong in
   `application.yml`; operator-facing policy in `SettingsService`.
+
+---
+
+## 11. Distributed station nodes (Pi) & the common wire protocol
+
+The station is moving off the single Mac onto small headless nodes on the
+(wired) LAN — and they are deliberately **not all the same**. ft8web has to drive
+a mix of them through *one* interface. This section defines that interface; it
+sits on top of §3 (`StationBackend` / `DecodeSource`) and reuses the WSJT-X
+codec of §7.
+
+### The nodes (seen / planned)
+
+- **Mac + WSJT-X (MVP):** `DECODE | TRANSMIT | CAT*`, auto-sequencing. Today's node.
+- **RX-Pi** — Pi Zero 2 W + Waveshare Ethernet/USB-HUB HAT, IC-7300 over the one
+  USB cable (**audio codec + CI-V CAT together**), running **ft8mon**: `DECODE`
+  only. Optionally `CAT` later via a local `rigctld` for retune.
+- **TX-Pi v1** — Pi Zero 2 WH + `rpitx` + low-pass filter: `TRANSMIT` only, and a
+  **dumb per-slot engine** (no sequencer). It emits **absolute RF** directly off a
+  GPIO clock — not a dial + audio offset inside a 3 kHz passband.
+- **TX-Pi v2 / full station** — TX-Pi + an **SDR stick running ft8mon**:
+  `DECODE | TRANSMIT`. ft8mon (RX) + rpitx or the planned `ft8-tx-daemon` (TX) on
+  one node is a **full WSJT-X replacement**, headless on the Pi.
+
+End state: two *independent full stations* — the IC-7300 node (once its
+`ft8-tx-daemon` lands) and the rpitx/SDR node — plus any WSJT-X, all speaking one
+protocol.
+
+### Principle: WSJT-X wire format + capability announce + private extensions
+
+1. **Telemetry (node → ft8web) is WSJT-X-format, verbatim.** Every node sends
+   `Heartbeat`; decoding nodes send `Status` + `Decode` exactly as WSJT-X does.
+   ft8web already parses this (`WsjtxUdpCodec`), **and** third-party tools
+   (GridTracker, JTAlert, loggers) consume it for free. This compatibility is the
+   whole point of mimicking WSJT-X.
+2. **Nodes announce their roles.** A node is classified by coarse **role flags**
+   `DECODE | TRANSMIT | CAT`, plus the existing intent `Capabilities` of §3
+   (notably `autoSequencer`). ft8web routes / greys out accordingly — a
+   `DECODE`-only node gets no "Answer" button, and "answer this CQ" is routed to a
+   `TRANSMIT`-capable node.
+3. **Our own functions are private message types, not a protocol fork.** Each
+   datagram carries exactly one message, framed `magic(0xadbccbda) + schema +
+   type + payload`, and a client dispatches on `type`. An unrecognised `type`
+   means the consumer simply **drops that datagram** — there is nothing to
+   mis-parse. So we add our commands as type ids in a **private range (≥ 100)**:
+   WSJT-X-native tools ignore them, our standard telemetry still interops, and the
+   same `WsjtxUdpCodec` handles both.
+
+### Capability tiers
+
+| Node | DECODE | TRANSMIT | CAT | autoSeq | Freq semantics | ft8web plumbing | SM mode |
+|---|---|---|---|---|---|---|---|
+| Mac + WSJT-X | ✅ | ✅ | via rigctld shim | ✅ | dial + audio Hz | `WsjtxBackend` + `WsjtxUdpDecodeSource` | delegate |
+| RX-Pi (ft8mon) | ✅ | — | opt. later | — | — (RX only) | second `WsjtxUdpDecodeSource` @ Pi | — |
+| TX-Pi v1 (rpitx) | — | ✅ | self | ❌ | **absolute RF Hz** | `PiTxBackend` | drive |
+| Full station (ft8mon + daemon) | ✅ | ✅ | ✅ | ❌/✅ | own | `Ft8DaemonBackend` + decode source | drive |
+
+The tiers encode an honest mismatch: WSJT-X's `Reply` / auto-sequencer model fits
+a *full sequencing* station. It fits **neither** a `DECODE`-only node (can't TX)
+**nor** a *dumb* `TRANSMIT` engine (no decode context, needs an explicit per-slot
+command). Hence the command direction splits.
+
+### Command direction (ft8web → node)
+
+- **Sequencing backends** (WSJT-X; `autoSequencer = true`): standard `Reply(4)` /
+  `Halt Tx(8)`. ft8web expresses intent, the node runs the on-air sequence
+  (§4 *delegate* mode). Unchanged.
+- **Dumb engines** (rpitx / daemon; `autoSequencer = false`): ft8web's state
+  machine runs §4 *drive* mode and commands **each slot** with a private
+  `TxMessage`. The node transmits exactly what and when it is told — no more.
+
+### Proposed private extension messages (ids ≥ 100, our range)
+
+| Dir | Name | id | Payload (sketch) | For |
+|---|---|---|---|---|
+| node→us | `NodeCapabilities` | 100 | node id, role flags, `autoSequencer`, bands, fw version | all |
+| us→node | `TxMessage` | 101 | id, FT8 text (or 77-bit payload), slot parity / UTC, **freq: `absoluteRfHz` \| `audioHz`**, repeatUntil | TRANSMIT, !autoSeq |
+| us→node | `TxCancel` | 102 | id (or "all") | TRANSMIT |
+| us→node | `SetChannel` | 103 | rf / dial Hz, mode, power | CAT |
+| node→us | `TxState` | 104 | queued / on-air / done + what | TRANSMIT |
+
+`NodeCapabilities` rides *alongside* the standard `Heartbeat` (liveness stays
+WSJT-X-native, so watchdogs and third-party tools still see the node). `TxMessage`
+carries **absolute RF** for rpitx and a plain **audio offset** for a dial-based
+rig — the field is tagged so one command type serves both. The ids are a
+convention we own; freeze them when the first node firmware is written.
+
+### ft8web backends (extends §3)
+
+- **RX-Pi needs no new ft8web code:** point a second `WsjtxUdpDecodeSource` at the
+  Pi's datagrams (LAN UDP instead of localhost). It is `DECODE`-only, so it offers
+  no TX intents; replying is routed elsewhere.
+- `PiTxBackend implements StationBackend`: `autoSequencer = false`; `transmit()` →
+  `TxMessage`, `halt()` → `TxCancel`; `callCq` is supported (just a `TxMessage`
+  with a CQ string built by `Ft8MessageBuilder`); the frequency/mode/power setters
+  are gated by the `CAT` role.
+- `Ft8DaemonBackend` (unchanged plan) is the full-station case. It may advertise
+  `autoSequencer` either way: ft8web *drives* the slots while the daemon stays
+  dumb, or *delegates* once the daemon grows its own sequencer.
+
+### Node bring-up notes (cross-refs)
+
+- **Clock:** every TX-capable node must be **chrony/NTP-synced** (§6). Over the
+  wired LAN this is trivial — do it before the first transmit, or the far end's
+  decodes drift out of the slot.
+- **Safety:** the rpitx node is a real QRP transmitter on the air — the **LPF is
+  mandatory** (square-wave harmonics), and the TX guards of §5 all apply (default
+  off, explicit arm, dry-run, audit log). ft8web keying a Pi over the LAN makes the
+  heartbeat **watchdog** load-bearing: lose the heartbeat → `TxCancel` + inhibit.
