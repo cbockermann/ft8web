@@ -5,7 +5,8 @@ import { useControl } from '../control/ControlProvider.jsx';
 import { useCallsignFlags, useMetaToggle } from '../lib/locatorMeta.js';
 import { callTokens } from '../lib/callsign.js';
 import { compileFilter, ctxFor } from '../lib/filterExpr.js';
-import { filtersUrl, filterUrl } from '../api.js';
+import { filtersUrl, filterUrl, filterHelpUrl } from '../api.js';
+import FilterHelp from '../components/FilterHelp.jsx';
 
 function fmtFreq(hz) {
   return hz ? `${(hz / 1e6).toFixed(3)} MHz` : '—';
@@ -29,6 +30,8 @@ export default function ControlView() {
   const [filterMode, setFilterMode] = useState('hide'); // hide | dim
   const [saved, setSaved] = useState([]);
   const [saveName, setSaveName] = useState('');
+  const [filterFocused, setFilterFocused] = useState(false);
+  const [helpEnabled] = useMetaToggle('control.filterHelp', true);
 
   useEffect(() => {
     let active = true;
@@ -205,6 +208,8 @@ export default function ControlView() {
           className="filter-input ctl-filter-input"
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
+          onFocus={() => setFilterFocused(true)}
+          onBlur={() => setFilterFocused(false)}
           placeholder="Filter — e.g. snr > -18 and not worked"
           spellCheck={false}
         />
@@ -226,6 +231,15 @@ export default function ControlView() {
               ⚠ {compiled.error}
             </span>
           ))}
+        <a
+          className="filter-help-link"
+          href={filterHelpUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open the filter syntax help in a new window"
+        >
+          Filter help ↗
+        </a>
         <span className="ctl-filter-spacer" />
         <select
           className="band-select"
@@ -262,6 +276,10 @@ export default function ControlView() {
           </button>
         )}
       </div>
+
+      {helpEnabled && filterFocused && (
+        <FilterHelp compact onPick={(expr) => setFilterText(expr)} />
+      )}
 
       <ul className="ctl-decodes">
         {shown.length === 0 && (

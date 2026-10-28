@@ -42,7 +42,8 @@ public class SpaController {
             "/reports", "/reports/**",
             "/control", "/control/**",
             "/qsos", "/qsos/**",
-            "/config", "/config/**"
+            "/config", "/config/**",
+            "/help", "/help/**"
     }, produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
     public ResponseEntity<String> index(HttpServletRequest request) throws IOException {

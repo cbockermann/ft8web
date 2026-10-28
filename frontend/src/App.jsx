@@ -7,6 +7,7 @@ import ReportsView from './views/ReportsView.jsx';
 import ControlView from './views/ControlView.jsx';
 import QsosView from './views/QsosView.jsx';
 import ConfigView from './views/ConfigView.jsx';
+import FilterHelpView from './views/FilterHelpView.jsx';
 
 export default function App() {
   const { connected } = useFeed();
@@ -38,6 +39,8 @@ export default function App() {
         <Route path="/control" element={<ControlView />} />
         <Route path="/qsos" element={<QsosView />} />
         <Route path="/config" element={<ConfigView />} />
+        <Route path="/help/filters" element={<FilterHelpView />} />
+        <Route path="/help" element={<Navigate to="/help/filters" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

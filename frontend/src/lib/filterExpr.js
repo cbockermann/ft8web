@@ -4,7 +4,7 @@
 // Examples:
 //   snr > -18 and not worked
 //   cq and (new or last_worked > 30days) and distance < 3000
-//   country in ("DL","F","G") and db >= -15
+//   cc in ("DE","FR","GB") and db >= -15
 //   call matches "HB9*"
 //
 // Fields/funcs resolve against a decode's backend facts (see ctxFor). The

@@ -9,6 +9,10 @@ export const apiBase = `${CTX}/api`;
 export const streamUrl = `${apiBase}/stream`;
 export const settingsUrl = `${apiBase}/settings`;
 
+// Standalone help pages (opened in a new window). Absolute so they resolve
+// correctly under a servlet context-path when opened as a fresh document.
+export const filterHelpUrl = `${CTX}/help/filters`;
+
 export function qslUrl(decodeId) {
   return `${apiBase}/qsl/${encodeURIComponent(decodeId)}`;
 }

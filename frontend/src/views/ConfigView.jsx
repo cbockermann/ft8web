@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { settingsUrl } from '../api.js';
+import { useMetaToggle } from '../lib/locatorMeta.js';
 
 const DEFAULT_PSK = {
   enabled: false,
@@ -47,6 +48,8 @@ export default function ConfigView() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null); // { ok, msg }
+  // Browser-local UI preference (not part of the server settings form).
+  const [filterHelp, setFilterHelp] = useMetaToggle('control.filterHelp', true);
 
   useEffect(() => {
     fetch(settingsUrl)
@@ -242,6 +245,25 @@ export default function ConfigView() {
           <button type="button" className="band-add" onClick={addBand}>
             + Add band
           </button>
+        </fieldset>
+
+        <fieldset className="config-section">
+          <legend>Interface</legend>
+          <div className="config-field">
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={filterHelp}
+                onChange={(e) => setFilterHelp(e.target.checked)}
+              />
+              <span>Inline filter help</span>
+            </label>
+            <p className="field-desc">
+              Show the filter-syntax help below the Control-view filter field while editing.
+              When off, only the “Filter help” link (new window) remains. Stored in this
+              browser; applies immediately.
+            </p>
+          </div>
         </fieldset>
 
         <div className="config-actions">

@@ -21,9 +21,9 @@ function saveBool(key, value) {
   }
 }
 
-/** Persisted on/off toggle (shared across the feeds via one storage key). */
-export function useMetaToggle(storageKey = 'feed.showMeta') {
-  const [enabled, setEnabled] = useState(() => loadBool(storageKey, false));
+/** Persisted on/off toggle (per browser, keyed in localStorage). */
+export function useMetaToggle(storageKey = 'feed.showMeta', fallback = false) {
+  const [enabled, setEnabled] = useState(() => loadBool(storageKey, fallback));
   const toggle = (v) => {
     setEnabled(v);
     saveBool(storageKey, v);

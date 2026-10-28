@@ -864,3 +864,89 @@ section h2 {
 }
 .ctl-del-btn:hover { color: #e06c6c; border-color: #e06c6c; }
 .ctl-row.dim { opacity: 0.3; }
+
+/* --- Filter help (inline panel + standalone page) --- */
+.filter-help-link {
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.filter-help-link:hover { text-decoration: underline; }
+
+.filter-help {
+  color: var(--text);
+}
+.filter-help.compact {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  margin: 0.4rem 0 0.6rem;
+  font-size: 0.82rem;
+}
+.filter-help .fh-section { margin-bottom: 0.9rem; }
+.filter-help .fh-section:last-child { margin-bottom: 0; }
+.filter-help h4 {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.fh-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.25rem 1.2rem;
+}
+.fh-field {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas: "name type" "desc desc";
+  column-gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+.fh-name { grid-area: name; color: var(--accent); font-size: 0.82rem; }
+.fh-alias { color: var(--muted); }
+.fh-type { grid-area: type; color: var(--muted); font-size: 0.72rem; text-align: right; align-self: center; }
+.fh-field .fh-desc { grid-area: desc; color: var(--text); opacity: 0.85; }
+
+.fh-ops { display: flex; flex-direction: column; gap: 0.3rem; }
+.fh-op { display: flex; gap: 0.6rem; align-items: baseline; }
+.fh-sym {
+  color: var(--accent);
+  min-width: 10.5rem;
+  flex: 0 0 auto;
+}
+.fh-op .fh-desc { color: var(--text); opacity: 0.85; }
+
+.fh-examples { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.fh-examples.pickable { gap: 0.35rem; }
+.fh-example {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+button.fh-example { cursor: pointer; }
+button.fh-example:hover { border-color: var(--accent); background: var(--selected); }
+.fh-example code { color: var(--accent); white-space: nowrap; }
+.fh-example-desc { color: var(--muted); font-size: 0.78rem; }
+
+.fh-notes { margin: 0; padding-left: 1.1rem; color: var(--text); opacity: 0.88; }
+.fh-notes li { margin: 0.2rem 0; }
+
+/* Standalone help page */
+.help-page { max-width: 760px; }
+.help-page .help-intro { color: var(--text); opacity: 0.9; line-height: 1.5; max-width: 60ch; }
+.help-page .filter-help { margin-top: 1rem; }
+.help-page .fh-example code,
+.help-page .fh-sym,
+.help-page .fh-name { font-size: 0.86rem; }
