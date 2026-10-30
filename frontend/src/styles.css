@@ -669,7 +669,24 @@ section h2 {
   letter-spacing: 0.05em;
   color: var(--muted);
   margin: 0 0 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
+.ctl-qso-abort {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #c0392b;
+  color: #e06c6c;
+  border-radius: 6px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+.ctl-qso-abort:hover { background: #c0392b; color: #fff; }
 .ctl-qso-empty { color: var(--muted); font-size: 0.85rem; }
 
 /* Own transmission highlighted in the decode stream. */

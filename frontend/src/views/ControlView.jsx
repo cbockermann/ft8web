@@ -74,6 +74,18 @@ export default function ControlView() {
     }
   };
 
+  // Abort the current QSO: halt Tx now (auto=false) so WSJT-X stops calling — for
+  // when you've answered a station that clearly can't hear you.
+  const abortQso = async () => {
+    try {
+      const r = await fetch(controlHaltUrl(false), { method: 'POST' });
+      const ok = r.ok && (await r.json()).ok;
+      flash(ok ? (dx ? `Aborted QSO with ${dx}` : 'Transmit halted') : 'Abort failed — is WSJT-X connected?');
+    } catch {
+      flash('Abort failed — backend unreachable');
+    }
+  };
+
   const tune = async (b) => {
     try {
       const r = await fetch(controlFrequencyUrl(b.freqHz, b.mode), { method: 'POST' });
@@ -317,7 +329,19 @@ export default function ControlView() {
       </ul>
 
       <section className="ctl-qso">
-        <h3>{dx ? `QSO with ${dx}` : 'QSO'}</h3>
+        <h3>
+          <span>{dx ? `QSO with ${dx}` : 'QSO'}</span>
+          {(status.txEnabled || status.transmitting) && (
+            <button
+              type="button"
+              className="ctl-qso-abort"
+              onClick={abortQso}
+              title="Stop this QSO — halt Tx now so WSJT-X stops calling"
+            >
+              ✕ Abort QSO
+            </button>
+          )}
+        </h3>
         {!dx && (
           <p className="ctl-qso-empty">
             The CQ / response sequence will appear here — pick a station above to start.
